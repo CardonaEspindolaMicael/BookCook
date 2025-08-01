@@ -86,6 +86,7 @@ model Book {
   id          String   @id @default(uuid())
   title       String
   description String
+  cover       String?  // Book cover image URL
   price       Float
   status      String
   createdAt   DateTime @default(now())
@@ -139,6 +140,7 @@ model Chapter {
   id         String   @id @default(uuid())
   title      String
   content    String
+  cover      String?  // Chapter cover image URL
   orderIndex Int
   bookId     String
   createdAt  DateTime @default(now())
