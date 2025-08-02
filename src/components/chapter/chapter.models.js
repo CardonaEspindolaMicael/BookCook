@@ -22,10 +22,28 @@ export const obtenerCapitulos = async () => {
         aiInteractions: {
           include: {
             interactionType: true,
-            aiAssistant: true
+            aiAssistant: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
           }
         },
-        contentUpdates: true
+        readingHistory: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        chapterIndex: true
       },
       orderBy: {
         orderIndex: 'asc'
@@ -43,18 +61,20 @@ export const crearCapitulo = async (datos) => {
     const { 
       title,
       content,
-      cover,
       orderIndex,
-      bookId
+      bookId,
+      isFree = true,
+      wordCount = 0
     } = datos;
     
     const nuevoCapitulo = await prisma.chapter.create({
       data: {
         title,
         content,
-        cover,
         orderIndex,
-        bookId
+        bookId,
+        isFree,
+        wordCount
       },
       include: {
         book: {
@@ -84,16 +104,18 @@ export const actualizarCapitulo = async (capitulo) => {
     id,
     title,
     content,
-    cover,
-    orderIndex
+    orderIndex,
+    isFree,
+    wordCount
   } = capitulo;
 
   try {
     const updateData = {};
     if (title) updateData.title = title;
     if (content) updateData.content = content;
-    if (cover !== undefined) updateData.cover = cover;
     if (orderIndex !== undefined) updateData.orderIndex = orderIndex;
+    if (isFree !== undefined) updateData.isFree = isFree;
+    if (wordCount !== undefined) updateData.wordCount = wordCount;
 
     const capituloActualizado = await prisma.chapter.update({
       where: { id },
@@ -178,9 +200,9 @@ export const obtenerCapituloPorId = async (id) => {
             }
           }
         },
-        contentUpdates: {
+        readingHistory: {
           include: {
-            author: {
+            user: {
               select: {
                 id: true,
                 name: true,
@@ -188,7 +210,8 @@ export const obtenerCapituloPorId = async (id) => {
               }
             }
           }
-        }
+        },
+        chapterIndex: true
       }
     });
     return capitulo;
@@ -206,12 +229,8 @@ export const obtenerCapitulosPorLibro = async (bookId) => {
         aiInteractions: {
           include: {
             interactionType: true,
-            aiAssistant: true
-          }
-        },
-        contentUpdates: {
-          include: {
-            author: {
+            aiAssistant: true,
+            user: {
               select: {
                 id: true,
                 name: true,
@@ -219,7 +238,19 @@ export const obtenerCapitulosPorLibro = async (bookId) => {
               }
             }
           }
-        }
+        },
+        readingHistory: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        chapterIndex: true
       },
       orderBy: {
         orderIndex: 'asc'
@@ -323,6 +354,61 @@ export const buscarCapitulos = async (searchTerm) => {
       }
     });
     return capitulos;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
+};
+
+export const obtenerCapitulosGratuitos = async () => {
+  try {
+    const capitulos = await prisma.chapter.findMany({
+      where: { isFree: true },
+      include: {
+        book: {
+          select: {
+            id: true,
+            title: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        orderIndex: 'asc'
+      }
+    });
+    return capitulos;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
+};
+
+export const actualizarContadorPalabras = async (chapterId) => {
+  try {
+    const capitulo = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      select: { content: true }
+    });
+
+    if (!capitulo) {
+      throw new Error('Capítulo no encontrado');
+    }
+
+    const wordCount = capitulo.content.split(/\s+/).filter(word => word.length > 0).length;
+
+    const capituloActualizado = await prisma.chapter.update({
+      where: { id: chapterId },
+      data: { wordCount }
+    });
+
+    return capituloActualizado;
   } catch (error) {
     console.error(error);
     return error;

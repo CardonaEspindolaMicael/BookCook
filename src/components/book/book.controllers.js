@@ -7,7 +7,10 @@ import {
   obtenerLibrosPorAutor,
   buscarLibros,
   obtenerLibrosPorEstado,
-  obtenerEstadisticasLibro
+  obtenerEstadisticasLibro,
+  obtenerLibrosNFT,
+  obtenerLibrosGratuitos,
+  incrementarVistas
 } from "./book.models.js";
 import { crearLibroSchema } from "./dto/book.dto.js";
 import { actualizarLibroSchema } from "./dto/book.update.dto.js";
@@ -124,6 +127,37 @@ export const getEstadisticasLibro = async (req, res) => {
   try {
     const response = await obtenerEstadisticasLibro(bookId);
     res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getLibrosNFT = async (req, res) => {
+  try {
+    const response = await obtenerLibrosNFT();
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getLibrosGratuitos = async (req, res) => {
+  try {
+    const response = await obtenerLibrosGratuitos();
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const incrementarVistaLibro = async (req, res) => {
+  const { bookId } = req.params;
+  try {
+    const response = await incrementarVistas(bookId);
+    res.status(200).json({
+      message: 'Vista incrementada exitosamente',
+      ...response
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,5 +1,5 @@
-import {Router} from "express"
-import { 
+import express from "express";
+import {
   getCapitulos,
   getCapituloPorId,
   postCapitulo,
@@ -8,23 +8,23 @@ import {
   getCapitulosPorLibro,
   getCapituloPorOrden,
   putReordenarCapitulos,
-  buscarCapitulosPorTermino
+  buscarCapitulosPorTermino,
+  getCapitulosGratuitos,
+  actualizarContadorPalabrasCapitulo
 } from "./chapter.controllers.js";
-const routerChapter = Router();
-import { checkAuth } from "../../middlewares/auth.js";
-import { authRole } from "../../middlewares/auth_role.js";
 
-// Basic chapter routes
-routerChapter.get('/', getCapitulos);
-routerChapter.get('/:id', getCapituloPorId);
-routerChapter.post('/', checkAuth, postCapitulo);
-routerChapter.put('/', checkAuth, putCapitulo);
-routerChapter.delete('/:id', checkAuth, deleteCapitulo);
+const router = express.Router();
 
-// Advanced chapter routes
-routerChapter.get('/libro/:bookId', getCapitulosPorLibro);
-routerChapter.get('/libro/:bookId/orden/:orderIndex', getCapituloPorOrden);
-routerChapter.put('/libro/:bookId/reordenar', checkAuth, putReordenarCapitulos);
-routerChapter.get('/buscar', buscarCapitulosPorTermino);
+router.get("/", getCapitulos);
+router.get("/gratuitos", getCapitulosGratuitos);
+router.get("/buscar", buscarCapitulosPorTermino);
+router.get("/libro/:bookId", getCapitulosPorLibro);
+router.get("/libro/:bookId/orden/:orderIndex", getCapituloPorOrden);
+router.get("/:id", getCapituloPorId);
+router.post("/", postCapitulo);
+router.put("/", putCapitulo);
+router.put("/libro/:bookId/reordenar", putReordenarCapitulos);
+router.patch("/:chapterId/palabras", actualizarContadorPalabrasCapitulo);
+router.delete("/:id", deleteCapitulo);
 
-export default routerChapter; 
+export default router; 

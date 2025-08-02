@@ -1,41 +1,32 @@
-import {Router} from "express"
-import { 
-  postUsuario,
-  patchContrasena, 
-  getUsuarios, 
-  actualizarUsuario, 
-  eliminarUsuario,
-  renovarToken,
+import express from "express";
+import {
+  getUsuarios,
   getUsuariosById,
   getUsuariosByEmail,
-  getUsuarioConRelaciones,
+  postUsuario,
+  actualizarUsuario,
+  eliminarUsuario,
+  patchContrasena,
+  renovarToken,
   asignarRol,
-  removerRol
+  removerRol,
+  getUsuariosPremium,
+  getEstadisticasUsuario
 } from "./user.controllers.js";
-const routerUser = Router();
-import { checkAuth } from "../../middlewares/auth.js";
-import { authRole } from "../../middlewares/auth_role.js";
-//import { validateCreate } from "../../validators/user.js";
 
-routerUser.get('/cajeros', (req, res) => {
-  res.send('Hola Mundo');
-});
+const router = express.Router();
 
-// Basic user routes
-routerUser.get('/', [checkAuth], getUsuarios);
-routerUser.get('/:id', checkAuth, getUsuariosById);
-routerUser.get('/email/:email', checkAuth, getUsuariosByEmail);
-routerUser.put('/', checkAuth, actualizarUsuario);
-routerUser.post('/', postUsuario);
-routerUser.patch('/cambiarClave', patchContrasena);
-routerUser.delete('/:id', checkAuth, eliminarUsuario);
-routerUser.get('/renew', checkAuth, renovarToken);
+router.get("/", getUsuarios);
+router.get("/premium", getUsuariosPremium);
+router.get("/email/:email", getUsuariosByEmail);
+router.get("/estadisticas/:userId", getEstadisticasUsuario);
+router.get("/:id", getUsuariosById);
+router.post("/", postUsuario);
+router.put("/", actualizarUsuario);
+router.patch("/contrasena", patchContrasena);
+router.patch("/token", renovarToken);
+router.post("/asignar-rol", asignarRol);
+router.delete("/remover-rol", removerRol);
+router.delete("/:id", eliminarUsuario);
 
-// Enhanced user routes with relationships
-routerUser.get('/:id/relaciones', checkAuth, getUsuarioConRelaciones);
-
-// Role management routes
-routerUser.post('/asignar-rol', checkAuth, asignarRol);
-routerUser.delete('/remover-rol', checkAuth, removerRol);
-
-export default routerUser; 
+export default router; 

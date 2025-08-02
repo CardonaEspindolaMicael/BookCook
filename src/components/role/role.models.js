@@ -12,7 +12,9 @@ export const obtenerRoles = async () => {
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                image: true,
+                isPremium: true
               }
             }
           }
@@ -110,7 +112,8 @@ export const obtenerRolPorId = async (id) => {
                 id: true,
                 name: true,
                 email: true,
-                image: true
+                image: true,
+                isPremium: true
               }
             }
           }
@@ -135,7 +138,9 @@ export const obtenerRolPorNombre = async (name) => {
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                image: true,
+                isPremium: true
               }
             }
           }
@@ -191,6 +196,35 @@ export const obtenerRolesActivos = async () => {
         _count: {
           select: {
             userRoles: true
+          }
+        }
+      }
+    });
+    return roles;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
+};
+
+export const obtenerRolesPorPermisos = async (permissions) => {
+  try {
+    const roles = await prisma.role.findMany({
+      where: {
+        permissions: {
+          contains: permissions
+        }
+      },
+      include: {
+        userRoles: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
           }
         }
       }

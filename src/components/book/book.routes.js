@@ -1,5 +1,5 @@
-import {Router} from "express"
-import { 
+import express from "express";
+import {
   getLibros,
   getLibroPorId,
   postLibro,
@@ -8,23 +8,25 @@ import {
   getLibrosPorAutor,
   buscarLibrosPorTermino,
   getLibrosPorEstado,
-  getEstadisticasLibro
+  getEstadisticasLibro,
+  getLibrosNFT,
+  getLibrosGratuitos,
+  incrementarVistaLibro
 } from "./book.controllers.js";
-const routerBook = Router();
-import { checkAuth } from "../../middlewares/auth.js";
-import { authRole } from "../../middlewares/auth_role.js";
 
-// Basic book routes
-routerBook.get('/', getLibros);
-routerBook.get('/:id', getLibroPorId);
-routerBook.post('/', checkAuth, postLibro);
-routerBook.put('/', checkAuth, putLibro);
-routerBook.delete('/:id', checkAuth, deleteLibro);
+const router = express.Router();
 
-// Advanced book routes
-routerBook.get('/autor/:authorId', getLibrosPorAutor);
-routerBook.get('/buscar', buscarLibrosPorTermino);
-routerBook.get('/estado/:status', getLibrosPorEstado);
-routerBook.get('/:bookId/estadisticas', checkAuth, getEstadisticasLibro);
+router.get("/", getLibros);
+router.get("/nft", getLibrosNFT);
+router.get("/gratuitos", getLibrosGratuitos);
+router.get("/buscar", buscarLibrosPorTermino);
+router.get("/estado/:status", getLibrosPorEstado);
+router.get("/autor/:authorId", getLibrosPorAutor);
+router.get("/estadisticas/:bookId", getEstadisticasLibro);
+router.get("/:id", getLibroPorId);
+router.post("/", postLibro);
+router.put("/", putLibro);
+router.delete("/:id", deleteLibro);
+router.patch("/:bookId/vista", incrementarVistaLibro);
 
-export default routerBook; 
+export default router; 

@@ -7,7 +7,9 @@ import {
   obtenerCapitulosPorLibro,
   obtenerCapituloPorOrden,
   reordenarCapitulos,
-  buscarCapitulos
+  buscarCapitulos,
+  obtenerCapitulosGratuitos,
+  actualizarContadorPalabras
 } from "./chapter.models.js";
 import { crearCapituloSchema } from "./dto/chapter.dto.js";
 import { actualizarCapituloSchema } from "./dto/chapter.update.dto.js";
@@ -133,6 +135,28 @@ export const buscarCapitulosPorTermino = async (req, res) => {
     }
     const response = await buscarCapitulos(searchTerm);
     res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCapitulosGratuitos = async (req, res) => {
+  try {
+    const response = await obtenerCapitulosGratuitos();
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const actualizarContadorPalabrasCapitulo = async (req, res) => {
+  const { chapterId } = req.params;
+  try {
+    const response = await actualizarContadorPalabras(chapterId);
+    res.status(200).json({
+      message: 'Contador de palabras actualizado exitosamente',
+      ...response
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

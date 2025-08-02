@@ -27,6 +27,7 @@ export const loginUser = async (req, res) => {
       // Get user roles for token
       const userRoles = result.userRoles || [];
       const roles = userRoles.map(ur => ur.role.name);
+   
 
       const token = jwt.sign(
         { 
@@ -45,15 +46,7 @@ export const loginUser = async (req, res) => {
              message: "inicio de sesión con éxito!", 
              token ,
              success:true , 
-             data: {
-                id: result.id,
-                name: result.name,
-                email: result.email,
-                image: result.image,
-                isPremium: result.isPremium,
-                roles: roles,
-                createdAt: result.createdAt
-                } 
+             data: result
             });
 
     } catch (error) {

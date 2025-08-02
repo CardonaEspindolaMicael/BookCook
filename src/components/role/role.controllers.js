@@ -6,7 +6,8 @@ import {
   obtenerRolPorId,
   obtenerRolPorNombre,
   obtenerUsuariosConRol,
-  obtenerRolesActivos
+  obtenerRolesActivos,
+  obtenerRolesPorPermisos
 } from "./role.models.js";
 import { crearRolSchema } from "./dto/role.dto.js";
 import { actualizarRolSchema } from "./dto/role.update.dto.js";
@@ -111,6 +112,19 @@ export const getUsuariosConRol = async (req, res) => {
 export const getRolesActivos = async (req, res) => {
   try {
     const response = await obtenerRolesActivos();
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getRolesPorPermisos = async (req, res) => {
+  const { permissions } = req.query;
+  try {
+    if (!permissions) {
+      return res.status(400).json({ message: "Permisos requeridos" });
+    }
+    const response = await obtenerRolesPorPermisos(permissions);
     res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,5 +1,5 @@
-import {Router} from "express"
-import { 
+import express from "express";
+import {
   getRoles,
   getRolPorId,
   getRolPorNombre,
@@ -7,22 +7,20 @@ import {
   putRol,
   deleteRol,
   getUsuariosConRol,
-  getRolesActivos
+  getRolesActivos,
+  getRolesPorPermisos
 } from "./role.controllers.js";
-const routerRole = Router();
-import { checkAuth } from "../../middlewares/auth.js";
-import { authRole } from "../../middlewares/auth_role.js";
 
-// Basic role routes
-routerRole.get('/', getRoles);
-routerRole.get('/:id', getRolPorId);
-routerRole.get('/nombre/:name', getRolPorNombre);
-routerRole.post('/', checkAuth, postRol);
-routerRole.put('/', checkAuth, putRol);
-routerRole.delete('/:id', checkAuth, deleteRol);
+const router = express.Router();
 
-// Advanced role routes
-routerRole.get('/:roleId/usuarios', getUsuariosConRol);
-routerRole.get('/activos/roles', getRolesActivos);
+router.get("/", getRoles);
+router.get("/activos", getRolesActivos);
+router.get("/permisos", getRolesPorPermisos);
+router.get("/nombre/:name", getRolPorNombre);
+router.get("/usuarios/:roleId", getUsuariosConRol);
+router.get("/:id", getRolPorId);
+router.post("/", postRol);
+router.put("/", putRol);
+router.delete("/:id", deleteRol);
 
-export default routerRole; 
+export default router; 

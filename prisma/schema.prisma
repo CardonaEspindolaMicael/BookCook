@@ -14,108 +14,327 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// NFT Book Platform - Wattpad Style with Blockchain
+// Core concept: Each book is an NFT, with free and paid content
+
+// Core User Model
 model User {
   id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
   image     String?
+  bio       String?  @db.Text
   isPremium Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships
-  wallets                Wallet[]
-  paymentMethods         PaymentMethod[]
-  books                  Book[]
-  purchases              Purchase[]
-  payments               Payment[]
-  aiInteractions         AIInteraction[]
-  blockchainTransactions BlockchainTransaction[]
-  userRoles              UserRole[]
+  // Core relationships
+  books         Book[]
+  purchases     Purchase[]
+  reviews       Review[]
+  bookAccesses  BookAccess[]
+  notifications Notification[]
+  userRoles     UserRole[]
   
-  // Enhanced Crowdfunding relationships
-  fundingsBacked    Funding[]        @relation("BackerRelation")
-  fundingsReceived  Funding[]        @relation("RecipientRelation")
-  campaigns         Campaign[]
-  campaignGoals     CampaignGoal[]
-  fanRequests       FanRequest[]     @relation("FanRequestAuthor")
-  fanRequestsMade   FanRequest[]     @relation("FanRequestFan")
-  subscriptionsOffered Subscription[] @relation("CreatorSubscription")
-  subscriptionsMade    Subscription[] @relation("SubscriberRelation")
-  contentUpdates    ContentUpdate[]
-  backerProfiles    Backer[]
+  // AI relationships
+  aiInteractions AIInteraction[]
+  aiUsage       AIUsage[]
+  
+  // Reading activity
+  readingHistory ReadingHistory[]
+  bookmarks     Bookmark[]
 
+  following     Follow[] @relation("Follower")
+  followers     Follow[] @relation("Following")
+  nftOwnerships NFTOwnership[]
+  @@index([email])
+  @@index([createdAt])
   @@map("users")
 }
 
-model Wallet {
-  id        String   @id @default(uuid())
-  userId    String
-  address   String
-  type      String
-  network   String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  // Relationships
-  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments               Payment[]
-  blockchainTransactions BlockchainTransaction[]
-
-  @@map("wallets")
-}
-
-model PaymentMethod {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  provider  String
-  details   String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  // Relationships
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments Payment[]
-
-  @@map("payment_methods")
-}
-
-model Book {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  cover       String?  // Book cover image URL
-  price       Float
-  status      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  authorId    String
-
-  // Relationships
-  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  chapters       Chapter[]
-  purchases      Purchase[]
-  bookVersions   BookVersion[]
-  aiInteractions AIInteraction[]
+// Genre System
+model Genre {
+  id          String @id @default(uuid())
+  name        String @unique @db.VarChar(100)
+  description String?
+  isActive    Boolean @default(true)
   
-  // Enhanced Crowdfunding relationships
-  fundings       Funding[]
-  campaigns      Campaign[]
-  fanRequests    FanRequest[]
-  contentUpdates ContentUpdate[]
+  books BookGenre[]
+  
+  @@map("genres")
+}
 
+model BookGenre {
+  id      String @id @default(uuid())
+  bookId  String
+  genreId String
+  
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  
+  @@unique([bookId, genreId])
+  @@map("book_genres")
+}
+
+// Core Book Model - Each book can become an NFT
+model Book {
+  id               String   @id @default(uuid())
+  title            String   @db.VarChar(200)
+  description      String   @db.Text
+  cover            String?  // Cover image URL
+  authorId         String
+  
+  // Content settings
+  isFree           Boolean  @default(true)   // Free to read for everyone
+  isComplete       Boolean  @default(false)  // Is the book finished?
+  totalChapters    Int      @default(0)      // Total chapters planned
+  
+  // NFT settings  
+  isNFT            Boolean  @default(false)  // Has been minted as NFT
+  nftPrice         Float?   // Price in ETH/MATIC when minting as NFT
+  maxSupply        Int?     // Maximum NFT copies (for limited editions)
+  currentSupply    Int      @default(0)      // Currently minted NFTs
+  
+  // Stats
+  viewCount        Int      @default(0)
+  averageRating    Float    @default(0)
+  totalReviews     Int      @default(0)
+  
+  // Status
+  status           String   @default("draft") // draft, published, completed
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relationships
+  author          User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapters        Chapter[]
+  genres          BookGenre[]
+  reviews         Review[]
+  bookAccesses    BookAccess[]
+  nftOwnerships   NFTOwnership[]
+  purchases       Purchase[]
+  bookIndex       BookIndex?        // AI indexing
+  aiInteractions  AIInteraction[]   // AI help for this book
+  
+  // Reader engagement
+  readingHistory  ReadingHistory[]
+  bookmarks       Bookmark[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([isFree])
+  @@index([isNFT])
+  @@index([createdAt])
+  @@index([viewCount])
   @@map("books")
 }
 
+// Chapter Model
+model Chapter {
+  id         String   @id @default(uuid())
+  title      String   @db.VarChar(200)
+  content    String   @db.Text
+  orderIndex Int
+  bookId     String
+  
+  // Chapter settings
+  isFree     Boolean  @default(true)   // Free chapters for preview
+  wordCount  Int      @default(0)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  book           Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  readingHistory ReadingHistory[]
+  chapterIndex   ChapterIndex?    // AI indexing for this chapter
+  aiInteractions AIInteraction[]  // AI help for this chapter
+
+  @@unique([bookId, orderIndex])
+  @@index([bookId])
+  @@index([isFree])
+  @@map("chapters")
+}
+
+// NFT Ownership - Tracks who owns which book NFTs (NO WALLET REFERENCE)
+model NFTOwnership {
+  id              String   @id @default(uuid())
+  tokenId         String   @unique // NFT token ID on blockchain
+  bookId          String
+  ownerId         String?  // Optional - user might not be registered
+  
+  // NFT Metadata
+  contractAddress String   // Smart contract address
+  network         String   // ethereum, polygon, etc.
+  currentOwner    String   // Current wallet address (dynamic)
+  mintedAt        DateTime @default(now())
+  
+  // Transfer history
+  previousOwner   String?  // Previous wallet address
+  transferredAt   DateTime?
+  lastUpdated     DateTime @default(now())
+
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([bookId])
+  @@index([ownerId])
+  @@index([tokenId])
+  @@index([currentOwner]) // Index for wallet-based lookups
+  @@index([contractAddress, network])
+  @@map("nft_ownerships")
+}
+
+// Access Control - Who can read what
+model BookAccess {
+  id         String   @id @default(uuid())
+  bookId     String
+  userId     String?  // Optional - might be wallet-only access
+  walletAddress String? // For wallet-based access without user account
+  accessType String   // "free", "nft_owner", "purchased"
+  grantedAt  DateTime @default(now())
+  expiresAt  DateTime? // For temporary access
+  
+  book Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([bookId, userId])
+  @@unique([bookId, walletAddress])
+  @@index([userId])
+  @@index([bookId])
+  @@index([walletAddress])
+  @@map("book_access")
+}
+
+// Simple Purchase Model (for non-NFT purchases)
+model Purchase {
+  id           String   @id @default(uuid())
+  buyerId      String?  // Optional - might be anonymous wallet purchase
+  bookId       String
+  walletAddress String? // For wallet-only purchases
+  amount       Float    // Price paid
+  currency     String   @default("ETH") // ETH, MATIC, USD, etc.
+  status       String   @default("completed")
+  purchaseDate DateTime @default(now())
+
+  buyer User? @relation(fields: [buyerId], references: [id], onDelete: SetNull)
+  book  Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([buyerId])
+  @@index([bookId])
+  @@index([walletAddress])
+  @@map("purchases")
+}
+
+// Blockchain Transaction Tracking (NO WALLET REFERENCE)
+model BlockchainTransaction {
+  id              String   @id @default(uuid())
+  transactionHash String   @unique
+  userId          String?  // Optional - might be anonymous
+  bookId          String?  // If related to a book transaction
+  
+  // Transaction details
+  type            String   // "mint_nft", "transfer_nft", "purchase"
+  network         String   // ethereum, polygon
+  fromAddress     String?  // Source wallet address
+  toAddress       String?  // Destination wallet address
+  amount          Float?   // Amount in crypto
+  gasUsed         Float?
+  status          String   @default("pending") // pending, confirmed, failed
+  blockNumber     Int?
+  timestamp       DateTime @default(now())
+  confirmedAt     DateTime?
+
+  @@index([transactionHash])
+  @@index([status])
+  @@index([timestamp])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@map("blockchain_transactions")
+}
+
+// Reading Activity Tracking
+model ReadingHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  bookId      String
+  chapterId   String?
+  
+  // Reading progress
+  lastChapter Int      @default(1)    // Last chapter read
+  progress    Float    @default(0)    // Reading progress %
+  timeSpent   Int      @default(0)    // Time spent reading (minutes)
+  
+  lastReadAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([lastReadAt])
+  @@map("reading_history")
+}
+
+// Bookmarks/Favorites
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+// User Following System
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// Review System
+model Review {
+  id                 String   @id @default(uuid())
+  bookId             String
+  userId             String
+  rating             Int      // 1-5 stars
+  title              String?  @db.VarChar(200)
+  content            String?  @db.Text
+  isVerifiedOwner    Boolean  @default(false) // Owns the NFT
+  createdAt          DateTime @default(now())
+  
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([bookId, userId])
+  @@index([bookId, rating])
+  @@map("reviews")
+}
+
+// User Roles System
 model Role {
   id          String @id @default(uuid())
-  name        String @unique
+  name        String @unique @db.VarChar(50) // "author", "reader", "admin", "premium"
   description String
-  permissions String
+  permissions String @db.Text // JSON permissions
 
-  // Relationships
   userRoles UserRole[]
 
   @@map("roles")
@@ -128,304 +347,183 @@ model UserRole {
   assignedAt DateTime  @default(now())
   expiresAt  DateTime?
 
-  // Relationships
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@index([userId])
   @@map("user_roles")
 }
 
-model Chapter {
-  id         String   @id @default(uuid())
-  title      String
-  content    String
-  cover      String?  // Chapter cover image URL
-  orderIndex Int
-  bookId     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Relationships
-  book           Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  aiInteractions AIInteraction[]
-  contentUpdates ContentUpdate[]
-
-  @@unique([bookId, orderIndex])
-  @@map("chapters")
-}
-
-model Purchase {
-  id           String   @id @default(uuid())
-  buyerId      String
-  bookId       String
-  amount       Float
-  status       String
-  purchaseDate DateTime @default(now())
-
-  // Relationships
-  buyer    User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  book     Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  payments Payment[]
-
-  @@unique([buyerId, bookId])
-  @@map("purchases")
-}
-
-model Payment {
-  id              String   @id @default(uuid())
-  purchaseId      String
-  userId          String
-  amount          Float
-  paymentMethod   String
-  transactionHash String?
-  status          String
-  timestamp       DateTime @default(now())
-
-  // Relationships
-  purchase              Purchase               @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentMethodRef      PaymentMethod?         @relation(fields: [paymentMethodId], references: [id])
-  wallet                Wallet?                @relation(fields: [walletId], references: [id])
-  blockchainTransaction BlockchainTransaction?
-
-  // Foreign keys for optional relationships
-  paymentMethodId String?
-  walletId        String?
-
-  @@map("payments")
-}
-
+// AI Assistant Models for Competition Edge
 model AIAssistant {
-  id    String @id @default(uuid())
-  model String
-  type  String
-
-  // Relationships
+  id       String @id @default(uuid())
+  name     String @db.VarChar(100) // "GPT-4", "Gemini", "Claude"
+  provider String @db.VarChar(50)  // "openai", "google", "anthropic"
+  model    String @db.VarChar(100) // "gpt-4", "gemini-pro"
+  apiKey   String @db.VarChar(500) // Encrypted API key
+  isActive Boolean @default(true)
+  
   aiInteractions AIInteraction[]
-
+  
   @@map("ai_assistants")
 }
 
 model InteractionType {
   id          String   @id @default(uuid())
-  name        String   @unique
+  name        String   @unique @db.VarChar(100)
   description String
-  isActive    Boolean  @default(true)
-  costPerUse  Float
-  category    String
-  createdAt   DateTime @default(now())
+  category    String   @db.VarChar(50)
+  
+  // AI Writing Helper Types
+  // "brainstorm" - Help find inspiration
+  // "title_generator" - Create titles based on book context  
+  // "ending_helper" - Help with book endings
+  // "oneshot_creator" - Create standalone stories
+  // "chapter_writer" - Help with chapter writing
+  // "character_developer" - Develop characters
+  // "plot_analyzer" - Analyze plot consistency
+  
+  systemPrompt String   @db.Text      // System prompt template
+  userPrompt   String   @db.Text      // User prompt template
+  costPerUse   Float    @default(0)   // Cost in credits/tokens
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
-  // Relationships
   aiInteractions AIInteraction[]
 
+  @@index([category])
   @@map("interaction_types")
 }
 
+// AI Interaction History - Essential for indexing user's work
 model AIInteraction {
   id                String   @id @default(uuid())
   userId            String
-  bookId            String?
-  chapterId         String?
+  bookId            String?  // Which book this relates to
+  chapterId         String?  // Which chapter this relates to
+  aiAssistantId     String
   interactionTypeId String
-  query             String
-  response          String
+  
+  // The actual AI conversation
+  userQuery         String   @db.Text     // User's request
+  contextData       String?  @db.Text     // Book/chapter content for context
+  aiResponse        String   @db.Text     // AI's response
+  
+  // Metadata for indexing and analysis
+  tokenUsed         Int      @default(0)  // Tokens consumed
+  processingTime    Int      @default(0)  // Response time in ms
+  satisfaction      Int?     // User rating 1-5
+  wasUseful         Boolean? // Did user use the suggestion?
+  
   timestamp         DateTime @default(now())
 
-  // Relationships
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book            Book?           @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  chapter         Chapter?        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  interactionType InteractionType @relation(fields: [interactionTypeId], references: [id], onDelete: Cascade)
-  aiAssistant     AIAssistant?    @relation(fields: [aiAssistantId], references: [id])
+  book            Book?           @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  chapter         Chapter?        @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  aiAssistant     AIAssistant     @relation(fields: [aiAssistantId], references: [id])
+  interactionType InteractionType @relation(fields: [interactionTypeId], references: [id])
 
-  // Foreign key for optional relationship
-  aiAssistantId String?
-
+  @@index([userId])
+  @@index([bookId])
+  @@index([timestamp])
+  @@index([interactionTypeId])
   @@map("ai_interactions")
 }
 
-model BlockchainTransaction {
-  id              String   @id @default(uuid())
-  transactionHash String   @unique
-  userId          String
-  resourceId      String
-  resourceType    String
-  network         String
-  amount          Float
-  status          String
-  timestamp       DateTime @default(now())
-
-  // Relationships
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wallet  Wallet?  @relation(fields: [walletId], references: [id])
-  payment Payment? @relation(fields: [paymentId], references: [id])
-
-  // Foreign keys for optional relationships
-  walletId  String? @unique
-  paymentId String? @unique
-
-  @@map("blockchain_transactions")
-}
-
-model BookVersion {
+// Book Indexing for AI Context - CRUCIAL for your AI features
+model BookIndex {
   id          String   @id @default(uuid())
-  bookId      String
-  versionHash String
-  changes     String
-  createdAt   DateTime @default(now())
+  bookId      String   @unique
+  
+  // Extracted content for AI analysis
+  fullText    String   @db.Text     // All chapters combined
+  summary     String?  @db.Text     // AI-generated summary
+  themes      String?  @db.Text     // JSON array of themes
+  characters  String?  @db.Text     // JSON array of characters
+  plotPoints  String?  @db.Text     // JSON array of key plot points
+  tone        String?  @db.VarChar(50) // "dark", "comedy", "romantic"
+  genre       String?  @db.VarChar(100) // Detected genre
+  wordCount   Int      @default(0)
+  
+  // AI analysis metadata
+  lastAnalyzed    DateTime? // When was this last processed by AI
+  analysisVersion String?   // Version of AI analysis
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relationships
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
-  @@map("book_versions")
+  @@index([bookId])
+  @@map("book_indexes")
 }
 
-// Enhanced Crowdfunding and Fan Support Models
-model Funding {
+// Chapter Indexing for more granular AI help
+model ChapterIndex {
   id          String   @id @default(uuid())
-  backerId    String
-  recipientId String
-  campaignId  String?
-  bookId      String?
-  amount      Float
-  message     String?
-  isAnonymous Boolean  @default(false)
-  fundingType String   @default("general") // general, book_specific, campaign, tip, commission
-  status      String   @default("completed") // completed, pending, failed, refunded
-  createdAt   DateTime @default(now())
-
-  // Relationships
-  backer    User      @relation("BackerRelation", fields: [backerId], references: [id], onDelete: Cascade)
-  recipient User      @relation("RecipientRelation", fields: [recipientId], references: [id], onDelete: Cascade)
-  book      Book?     @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  campaign  Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  @@map("fundings")
-}
-
-model Campaign {
-  id            String   @id @default(uuid())
-  creatorId     String
-  bookId        String?
-  title         String
-  description   String
-  campaignType  String   @default("book_funding") // book_funding, monthly_support, project_based, commission_pool
-  targetAmount  Float
-  currentAmount Float    @default(0)
-  status        String   @default("active") // active, completed, cancelled, paused, draft
-  startDate     DateTime @default(now())
-  endDate       DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relationships
-  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  book          Book?          @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  fundings      Funding[]
-  campaignGoals CampaignGoal[]
-  backers       Backer[]
-
-  @@map("campaigns")
-}
-
-model CampaignGoal {
-  id          String    @id @default(uuid())
-  campaignId  String
-  creatorId   String
-  amount      Float
-  title       String
-  description String
-  reward      String?   // What backers get when this goal is reached
-  isReached   Boolean   @default(false)
-  reachedAt   DateTime?
-  createdAt   DateTime  @default(now())
-
-  // Relationships
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  creator  User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-
-  @@map("campaign_goals")
-}
-
-model FanRequest {
-  id          String   @id @default(uuid())
-  fanId       String
-  authorId    String
-  bookId      String?
-  requestType String   // "continue_story", "new_chapter", "new_book", "character_development", "alternate_ending"
-  title       String
-  description String
-  offerAmount Float?   // Amount fan is willing to fund if fulfilled
-  status      String   @default("pending") // pending, accepted, rejected, completed, in_progress
-  priority    Int      @default(0) // Higher numbers = higher priority
-  upvotes     Int      @default(0) // Community voting on requests
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relationships
-  fan    User  @relation("FanRequestFan", fields: [fanId], references: [id], onDelete: Cascade)
-  author User  @relation("FanRequestAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  book   Book? @relation(fields: [bookId], references: [id], onDelete: SetNull)
-
-  @@map("fan_requests")
-}
-
-model Subscription {
-  id           String    @id @default(uuid())
-  subscriberId String
-  creatorId    String
-  tier         String    // "basic", "premium", "vip", "custom"
-  monthlyAmount Float
-  status       String    @default("active") // active, paused, cancelled, expired
-  benefits     String    // JSON string of benefits included
-  startDate    DateTime  @default(now())
-  endDate      DateTime?
-  createdAt    DateTime  @default(now())
-
-  // Relationships
-  subscriber User @relation("SubscriberRelation", fields: [subscriberId], references: [id], onDelete: Cascade)
-  creator    User @relation("CreatorSubscription", fields: [creatorId], references: [id], onDelete: Cascade)
-
-  @@unique([subscriberId, creatorId])
-  @@map("subscriptions")
-}
-
-model ContentUpdate {
-  id           String   @id @default(uuid())
-  authorId     String
-  bookId       String?
-  chapterId    String?
-  title        String
-  content      String
-  updateType   String   @default("general") // general, chapter_release, progress_update, behind_scenes, announcement
-  isPublic     Boolean  @default(true)
-  tierRequired String?  // Subscription tier required to view (if not public)
-  publishedAt  DateTime @default(now())
+  chapterId   String   @unique
+  bookId      String
+  
+  // Chapter-specific analysis
+  content     String   @db.Text     // Chapter content
+  summary     String?  @db.Text     // AI-generated chapter summary
+  keyEvents   String?  @db.Text     // JSON array of key events
+  characters  String?  @db.Text     // Characters introduced/featured
+  mood        String?  @db.VarChar(50) // Chapter mood/tone
+  cliffhanger Boolean  @default(false) // Ends with cliffhanger?
+  wordCount   Int      @default(0)
+  
+  lastAnalyzed DateTime?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // Relationships
-  author  User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  book    Book?    @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
-  @@map("content_updates")
+  @@index([chapterId])
+  @@index([bookId])
+  @@map("chapter_indexes")
 }
 
-model Backer {
-  id               String   @id @default(uuid())
-  userId           String
-  campaignId       String
-  totalContributed Float    @default(0)
-  backerTier       String   @default("supporter") // supporter, patron, champion, benefactor
-  isAnonymous      Boolean  @default(false)
-  firstBackedAt    DateTime @default(now())
-  lastBackedAt     DateTime @default(now())
+// AI Usage Credits/Limits
+model AIUsage {
+  id              String   @id @default(uuid())
+  userId          String
+  month           String   @db.VarChar(7) // "2024-01" format
+  
+  // Usage tracking
+  totalInteractions Int    @default(0)
+  tokensUsed       Int     @default(0)
+  creditsUsed      Float   @default(0)
+  
+  // Limits (based on user role/subscription)
+  monthlyLimit     Int     @default(100)  // Free tier limit
+  remainingCredits Float   @default(100)
+  
+  resetAt          DateTime
+  createdAt        DateTime @default(now())
 
-  // Relationships
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, campaignId])
-  @@map("backers")
+  @@unique([userId, month])
+  @@index([userId])
+  @@map("ai_usage")
+}
+
+// Simple Notification System
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   @db.VarChar(50) // "new_chapter", "nft_minted", "review_received", "ai_suggestion"
+  title     String   @db.VarChar(200)
+  message   String   @db.Text
+  bookId    String?  // Related book if applicable
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
