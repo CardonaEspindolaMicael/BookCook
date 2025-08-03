@@ -59,7 +59,7 @@ export const crearLibro = async (datos) => {
     const { 
       title,
       description,
-      cover,
+      cover, 
       authorId,
       isFree = true,
       isComplete = false,
