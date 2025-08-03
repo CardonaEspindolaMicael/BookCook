@@ -16,6 +16,7 @@ import {
 import { aiInteractionSchema } from "./dto/aiInteraction.dto.js";
 import { createAIUsageSchema } from "./dto/aiUsage.dto.js";
 import { interactionTypeCreateSchema } from "./dto/interactionType.dto.js";
+import { sendToAIService, checkAIServiceConfig } from "./aiServiceIntegration.js";
 
 export const getAIWritingOptions = async (req, res) => {
   try {
@@ -305,26 +306,21 @@ export const getInteractionTypeController = async (req, res) => {
   }
 };
 
-// Helper function to send request to AI service
-async function sendToAIService(aiRequest) {
+// Check AI service configuration
+export const checkAIServiceConfiguration = async (req, res) => {
   try {
-    const startTime = Date.now();
+    const config = checkAIServiceConfig();
     
-    // This would integrate with OpenAI, Claude, or Gemini
-    // For now, returning a mock response
-    const mockResponse = {
-      success: true,
-      response: `AI Response for: ${aiRequest.userQuery}`,
-      tokenUsed: 150,
-      processingTime: Date.now() - startTime
-    };
-
-    return mockResponse;
+    res.status(200).json({
+      message: "AI Service Configuration Status",
+      config,
+      environment: {
+        geminiConfigured: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        falConfigured: !!process.env.FAL_API_KEY
+      }
+    });
   } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      processingTime: Date.now() - startTime
-    };
+    console.error('Error checking AI service configuration:', error);
+    res.status(500).json({ error: error.message });
   }
-} 
+}; 

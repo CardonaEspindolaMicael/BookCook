@@ -7,7 +7,8 @@ import {
   getAIUsage,
   createInteractionTypeController,
   getInteractionTypeController,
-  createAIUsageController
+  createAIUsageController,
+  checkAIServiceConfiguration
 } from "./aiWritingAssistant.controllers.js";
 import { getAllInteractionType } from "./aiWritingAssistant.models.js";
 
@@ -21,7 +22,7 @@ router.post("/help", requestAIHelp);
 
 // Rate AI response
 router.post("/rate", rateAIResponse);
-
+ 
 // Apply AI suggestion to content
 router.post("/apply", applyAISuggestion);
 
@@ -31,4 +32,8 @@ router.post("/usage/:userId", createAIUsageController);
 
 router.post("/customInteraction", createInteractionTypeController);
 router.get("/customInteraction",getInteractionTypeController);
+
+// Check AI service configuration
+router.get("/config", checkAIServiceConfiguration);
+
 export default router; 

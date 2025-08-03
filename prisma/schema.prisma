@@ -170,7 +170,7 @@ model NFTOwnership {
   mintedAt        DateTime @default(now())
   
   // Transfer history
-  previousOwner   String?  // Previous wallet address
+  previousOwner   String?  // Previous wallet address 
   transferredAt   DateTime?
   lastUpdated     DateTime @default(now())
 
