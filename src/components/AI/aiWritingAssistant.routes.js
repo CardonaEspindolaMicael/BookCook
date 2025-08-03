@@ -26,7 +26,7 @@ router.post("/rate", rateAIResponse);
 router.post("/apply", applyAISuggestion);
 
 // Get AI usage statistics
-router.get("/usage", getAIUsage);
+router.get("/usage/:userId", getAIUsage);
 router.post("/usage/:userId", createAIUsageController);
 
 router.post("/customInteraction", createInteractionTypeController);

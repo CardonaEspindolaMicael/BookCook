@@ -20,8 +20,8 @@ import { interactionTypeCreateSchema } from "./dto/interactionType.dto.js";
 export const getAIWritingOptions = async (req, res) => {
   try {
     const { bookId, chapterId } = req.query;
-    const userId = req.params // From JWT token 
-
+    const {userId} = req.params // From JWT token 
+ 
     if (!userId) {
       return res.status(401).json({ message: "Usuario no autenticado" });
     }
@@ -29,14 +29,14 @@ export const getAIWritingOptions = async (req, res) => {
     // Check AI usage limits
     const aiUsage = await checkAIUsage(userId); 
     
-   /* if (!aiUsage.hasCredits) {
+    if (!aiUsage.hasCredits) {
       return res.status(402).json({
         message: "Límite mensual de AI alcanzado",
         upgradeRequired: true,
         currentUsage: aiUsage.currentUsage,
         monthlyLimit: aiUsage.monthlyLimit
       });
-    }*/
+    }
 
     // Get available interaction types
     const interactionTypes = await getInteractionTypes();
@@ -258,12 +258,7 @@ export const applyAISuggestion = async (req, res) => {
 
 export const getAIUsage = async (req, res) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Usuario no autenticado" });
-    }
-
+    const {userId}=req.params;
     const aiUsage = await checkAIUsage(userId);
 
     res.status(200).json({
