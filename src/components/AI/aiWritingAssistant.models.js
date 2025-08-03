@@ -352,6 +352,30 @@ export const getUserAIHistory = async (userId, limit = 20) => {
   }
 };
 
+export const createAIUsage = async (usageData,userId) => {
+  try {
+    const usage = await prisma.aIUsage.create({
+      data: {
+        userId: userId,
+        month: usageData.month,
+        totalInteractions: usageData.totalInteractions,
+        tokensUsed: usageData.tokensUsed,
+        creditsUsed: usageData.creditsUsed,
+        monthlyLimit: usageData.monthlyLimit,
+        remainingCredits: usageData.remainingCredits,
+        resetAt: new Date(usageData.resetAt)
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } }
+      }
+    });
+    return usage;
+  } catch (error) {
+    console.error("Error creating AI usage:", error);
+    throw error;
+  }
+};
+
 // Get AI usage statistics
 export const getAIUsageStats = async (userId) => {
   try {

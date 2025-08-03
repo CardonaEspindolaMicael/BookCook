@@ -6,14 +6,15 @@ import {
   applyAISuggestion,
   getAIUsage,
   createInteractionTypeController,
-  getInteractionTypeController
+  getInteractionTypeController,
+  createAIUsageController
 } from "./aiWritingAssistant.controllers.js";
 import { getAllInteractionType } from "./aiWritingAssistant.models.js";
 
 const router = express.Router();
 
 // Get AI writing options and check credits 
-router.get("/options", getAIWritingOptions);
+router.get("/options/:userId", getAIWritingOptions);
 
 // Request AI help
 router.post("/help", requestAIHelp);
@@ -26,6 +27,7 @@ router.post("/apply", applyAISuggestion);
 
 // Get AI usage statistics
 router.get("/usage", getAIUsage);
+router.post("/usage/:userId", createAIUsageController);
 
 router.post("/customInteraction", createInteractionTypeController);
 router.get("/customInteraction",getInteractionTypeController);

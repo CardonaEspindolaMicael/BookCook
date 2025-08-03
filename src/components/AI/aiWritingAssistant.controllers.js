@@ -9,34 +9,37 @@ import {
   updateChapterIndex,
   createNotification,
   createInteractionType,
-  getAllInteractionType
+  getAllInteractionType,
+  getInteractionTypes,
+  createAIUsage
 } from "./aiWritingAssistant.models.js";
 import { aiInteractionSchema } from "./dto/aiInteraction.dto.js";
+import { createAIUsageSchema } from "./dto/aiUsage.dto.js";
 import { interactionTypeCreateSchema } from "./dto/interactionType.dto.js";
 
 export const getAIWritingOptions = async (req, res) => {
   try {
     const { bookId, chapterId } = req.query;
-    const userId = req.user?.id; // From JWT token
+    const userId = req.params // From JWT token 
 
     if (!userId) {
       return res.status(401).json({ message: "Usuario no autenticado" });
     }
 
     // Check AI usage limits
-    const aiUsage = await checkAIUsage(userId);
+    const aiUsage = await checkAIUsage(userId); 
     
-    if (!aiUsage.hasCredits) {
+   /* if (!aiUsage.hasCredits) {
       return res.status(402).json({
         message: "Límite mensual de AI alcanzado",
         upgradeRequired: true,
         currentUsage: aiUsage.currentUsage,
         monthlyLimit: aiUsage.monthlyLimit
       });
-    }
+    }*/
 
     // Get available interaction types
-    const interactionTypes = await getInteractionType();
+    const interactionTypes = await getInteractionTypes();
     
     res.status(200).json({
       hasCredits: true,
@@ -78,7 +81,7 @@ export const requestAIHelp = async (req, res) => {
 
     // Check AI usage and interaction cost
     const aiUsage = await checkAIUsage(userId);
-    const interactionType = await getInteractionType(interactionTypeId);
+    const interactionType = await getAllInteractionType(interactionTypeId);
     
     if (!interactionType) {
       return res.status(404).json({ message: "Tipo de interacción no encontrado" });
@@ -273,6 +276,19 @@ export const getAIUsage = async (req, res) => {
 
   } catch (error) {
     console.error('Error getting AI usage:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const createAIUsageController = async (req, res) => {
+  try {
+    const {userId}=req.params;
+    const parsedData = createAIUsageSchema.parse(req.body);
+
+    const usage = await createAIUsage(parsedData,userId);
+    res.status(201).json(usage);
+  } catch (error) {
+    console.error("Error creating AI usage:", error);
     res.status(500).json({ error: error.message });
   }
 };

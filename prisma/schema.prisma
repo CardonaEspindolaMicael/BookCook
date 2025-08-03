@@ -380,7 +380,7 @@ model InteractionType {
   // "title_generator" - Create titles based on book context  
   // "ending_helper" - Help with book endings
   // "oneshot_creator" - Create standalone stories
-  // "chapter_writer" - Help with chapter writing
+  // "chapter_writer" - Help with chapter writing 
   // "character_developer" - Develop characters
   // "plot_analyzer" - Analyze plot consistency
   
