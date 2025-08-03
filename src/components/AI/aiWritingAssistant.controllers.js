@@ -65,11 +65,7 @@ export const requestAIHelp = async (req, res) => {
       contextData 
     } = req.body;
     
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Usuario no autenticado" });
-    }
+    const {userId} = req.params;
 
     // Validate request
     const validation = aiInteractionSchema.safeParse(req.body);
@@ -82,8 +78,7 @@ export const requestAIHelp = async (req, res) => {
 
     // Check AI usage and interaction cost
     const aiUsage = await checkAIUsage(userId);
-    const interactionType = await getAllInteractionType(interactionTypeId);
-    
+    const interactionType = await getAllInteractionType(interactionTypeId); 
     if (!interactionType) {
       return res.status(404).json({ message: "Tipo de interacción no encontrado" });
     }
@@ -97,15 +92,17 @@ export const requestAIHelp = async (req, res) => {
     }
 
     // Get context data
-    let bookContext = null;
-    let chapterContext = null;
+    let bookContext = "How to write a book without sight";
+    let chapterContext = "Chapter 1 The man who dreams of a world without sight";
 
     if (bookId) {
       bookContext = await getBookIndex(bookId);
+      console.log('bookContext', bookContext);
     }
 
     if (chapterId) {
       chapterContext = await getChapterIndex(chapterId);
+      console.log('chapterContext', chapterContext);
     }
 
     // Prepare AI request
@@ -119,20 +116,21 @@ export const requestAIHelp = async (req, res) => {
 
     // Send to AI service
     const aiResponse = await sendToAIService(aiRequest);
-
+    console.log('aiResponse', aiResponse);
     if (!aiResponse.success) {
       // Create failed interaction record
       await createAIInteraction({
         userId,
         bookId,
         chapterId,
-        aiAssistantId: interactionType.aiAssistantId,
+       // aiAssistantId: interactionType.aiAssistantId,
         interactionTypeId,
         userQuery,
         contextData,
         aiResponse: aiResponse.error,
         tokenUsed: 0,
         processingTime: aiResponse.processingTime,
+
         status: 'failed'
       });
 

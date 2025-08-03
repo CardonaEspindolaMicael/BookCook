@@ -18,7 +18,7 @@ const router = express.Router();
 router.get("/options/:userId", getAIWritingOptions);
 
 // Request AI help
-router.post("/help", requestAIHelp);
+router.post("/help/:userId", requestAIHelp);
 
 // Rate AI response
 router.post("/rate", rateAIResponse);

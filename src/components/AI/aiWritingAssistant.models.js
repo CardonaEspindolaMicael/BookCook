@@ -63,15 +63,15 @@ export const createInteractionType = async (data) => {
 };
 
 // Create AI interaction record
-export const createAIInteraction = async (interactionData) => {
+export const createAIInteraction = async (interactionData) => { 
   try {
     const interaction = await prisma.aIInteraction.create({
       data: {
-        userId: interactionData.userId,
-        bookId: interactionData.bookId,
-        chapterId: interactionData.chapterId,
-        aiAssistantId: interactionData.aiAssistantId,
-        interactionTypeId: interactionData.interactionTypeId,
+        user: { connect: { id: interactionData.userId } },
+        book: interactionData.bookId ? { connect: { id: interactionData.bookId } } : undefined,
+        chapter: interactionData.chapterId ? { connect: { id: interactionData.chapterId } } : undefined,
+        aiAssistant: interactionData.aiAssistantId ? { connect: { id: interactionData.aiAssistantId } } : undefined,
+        interactionType: { connect: { id: interactionData.interactionTypeId } },
         userQuery: interactionData.userQuery,
         contextData: interactionData.contextData,
         aiResponse: interactionData.aiResponse,
@@ -83,15 +83,11 @@ export const createAIInteraction = async (interactionData) => {
       include: {
         interactionType: true,
         aiAssistant: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
+        user: { select: { id: true, name: true, email: true } }
       }
     });
+    
+    
 
     return interaction;
   } catch (error) {

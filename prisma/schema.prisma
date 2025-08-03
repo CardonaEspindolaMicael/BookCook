@@ -402,7 +402,7 @@ model AIInteraction {
   userId            String
   bookId            String?  // Which book this relates to
   chapterId         String?  // Which chapter this relates to
-  aiAssistantId     String
+  aiAssistantId     String?
   interactionTypeId String
   
   // The actual AI conversation
@@ -421,7 +421,7 @@ model AIInteraction {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   book            Book?           @relation(fields: [bookId], references: [id], onDelete: SetNull)
   chapter         Chapter?        @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  aiAssistant     AIAssistant     @relation(fields: [aiAssistantId], references: [id])
+  aiAssistant     AIAssistant?     @relation(fields: [aiAssistantId], references: [id])
   interactionType InteractionType @relation(fields: [interactionTypeId], references: [id])
 
   @@index([userId])
@@ -472,6 +472,7 @@ model ChapterIndex {
   characters  String?  @db.Text     // Characters introduced/featured
   mood        String?  @db.VarChar(50) // Chapter mood/tone
   cliffhanger Boolean  @default(false) // Ends with cliffhanger?
+  thematicAnalysis String?  @db.Text  
   wordCount   Int      @default(0)
   
   lastAnalyzed DateTime?

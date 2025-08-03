@@ -22,7 +22,7 @@ router.get("/estado-animo/:estadoAnimo", getCapitulosPorEstadoAnimo);
 router.get("/:id", getIndicePorId);
 router.post("/", postIndiceCapitulo);
 router.put("/", putIndiceCapitulo);
-router.delete("/:id", deleteIndiceCapitulo);
+router.delete("/:id", deleteIndiceCapitulo); 
 router.patch("/:chapterId/analisis", putAnalisisCapitulo);
 
 export default router; 

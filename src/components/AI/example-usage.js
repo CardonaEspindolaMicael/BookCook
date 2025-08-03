@@ -156,6 +156,54 @@ async function generateChapterSummary() {
   }
 }
 
+// Example 4: Chapter analysis using the updated actualizarAnalisisCapitulo function
+async function analyzeChapterWithDatabase() {
+  console.log('📚 Analyzing chapter with database integration...');
+  
+  // Import the function (this would be done at the top of the file in a real implementation)
+  const { actualizarAnalisisCapitulo } = await import('../chapterIndex/chapterIndex.models.js');
+  
+  try {
+    // Example chapter ID (replace with actual chapter ID from your database)
+    const chapterId = 'example-chapter-id';
+    
+    console.log('🔄 Starting AI-powered chapter analysis...');
+    console.log('Chapter ID:', chapterId);
+    
+    const result = await actualizarAnalisisCapitulo(chapterId);
+    
+    if (result.aiAnalysis?.success) {
+      console.log('✅ Chapter analysis completed successfully!');
+      console.log('📊 Analysis Results:');
+      console.log('- Summary:', result.summary);
+      console.log('- Key Events:', JSON.parse(result.keyEvents));
+      console.log('- Characters:', JSON.parse(result.characters));
+      console.log('- Mood:', result.mood);
+      console.log('- Cliffhanger:', result.cliffhanger);
+      console.log('- Word Count:', result.wordCount);
+      console.log('- Thematic Analysis:', result.thematicAnalysis || 'N/A');
+      console.log('');
+      console.log('🤖 AI Analysis Metadata:');
+      console.log('- Processing Time:', result.aiAnalysis.processingTime + 'ms');
+      console.log('- Tokens Used:', result.aiAnalysis.tokenUsed);
+      console.log('- Model Used:', result.aiAnalysis.model);
+    } else {
+      console.log('❌ AI analysis failed:', result.aiAnalysis?.error);
+      console.log('📊 Fallback analysis results:');
+      console.log('- Summary:', result.summary);
+      console.log('- Key Events:', JSON.parse(result.keyEvents));
+      console.log('- Characters:', JSON.parse(result.characters));
+      console.log('- Mood:', result.mood);
+      console.log('- Cliffhanger:', result.cliffhanger);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Error during chapter analysis:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Run all examples
 async function runExamples() {
   console.log('🚀 Running AI Integration Examples...\n');
@@ -176,6 +224,9 @@ async function runExamples() {
   console.log('\n' + '='.repeat(50) + '\n');
   
   await generateChapterSummary();
+  console.log('\n' + '='.repeat(50) + '\n');
+  
+  await analyzeChapterWithDatabase();
   
   console.log('\n✅ All examples completed!');
 }
@@ -185,6 +236,7 @@ export {
   generateBookTitles,
   generateBookCover,
   generateChapterSummary,
+  analyzeChapterWithDatabase,
   runExamples,
   exampleAIUsage,
   exampleInteractionType,

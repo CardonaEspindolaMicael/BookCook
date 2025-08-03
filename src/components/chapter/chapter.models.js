@@ -184,9 +184,10 @@ export const obtenerCapituloPorId = async (id) => {
                 email: true,
                 image: true
               }
+            
             }
           }
-        },
+      },
         aiInteractions: {
           include: {
             interactionType: true,

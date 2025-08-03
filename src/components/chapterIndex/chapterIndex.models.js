@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { sendToAIService } from "../AI/aiServiceIntegration.js";
 
 const prisma = new PrismaClient();
 
@@ -166,6 +167,10 @@ export const eliminarIndiceCapitulo = async (id) => {
   }
 };
 
+function cleanAIResponse(text) {
+  return text.replace(/```json|```/g, '').trim();
+}
+
 export const actualizarAnalisisCapitulo = async (chapterId) => {
   try {
     // Obtener el capítulo para generar el análisis
@@ -175,10 +180,18 @@ export const actualizarAnalisisCapitulo = async (chapterId) => {
         book: {
           select: {
             id: true,
-            title: true
-          }
-        }
-      }
+            title: true,
+            genres: true,
+            bookIndex: {
+              select: {
+                summary: true,
+                themes: true,
+                genre: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!capitulo) {
@@ -188,13 +201,106 @@ export const actualizarAnalisisCapitulo = async (chapterId) => {
     const content = capitulo.content;
     const wordCount = content.split(/\s+/).length;
 
-    // Aquí podrías integrar con un servicio de IA para generar el análisis
-    // Por ahora, creamos un análisis básico
-    const summary = `Resumen del capítulo "${capitulo.title}"`;
-    const keyEvents = JSON.stringify(['evento1', 'evento2']); // Placeholder
-    const characters = JSON.stringify(['personaje1', 'personaje2']); // Placeholder
-    const mood = 'neutral'; // Placeholder
-    const cliffhanger = false; // Placeholder
+    // Configurar el análisis con Gemini AI
+    const aiRequest = {
+      userQuery: 'Analyze this chapter and provide a detailed analysis in JSON format.',
+      interactionType: {
+        name: 'Chapter Analyzer',
+        category: 'text_generation',
+        systemPrompt: `You are an expert literary analyst. Your task is to analyze book chapters and provide a structured JSON analysis.`,
+        // --- NEW, IMPROVED PROMPT ---
+        userPrompt: `Analyze the provided book chapter. Your response MUST be a raw JSON object and nothing else.
+
+**CRITICAL INSTRUCTIONS:**
+- The entire output must be a single, valid JSON object.
+- DO NOT wrap the JSON in Markdown backticks (\`\`\`).
+- DO NOT add any text, explanation, or comments before or after the JSON object.
+- The response must start with \`{\` and end with \`}\`.
+
+Based on the chapter, provide the following fields in the JSON structure:
+1.  **summary**: (String, 2-3 sentences) A concise summary of the chapter.
+2.  **keyEvents**: (Array of strings) The most important events that occur.
+3.  **characters**: (Array of strings) The characters who appear or are mentioned.
+4.  **mood**: (String) The predominant emotional tone (e.g., tense, cheerful, melancholic).
+5.  **cliffhanger**: (Boolean) \`true\` if the chapter ends on a cliffhanger, otherwise \`false\`.
+6.  **thematicAnalysis**: (String) A brief analysis of the themes explored. Can be an empty string if not applicable.
+
+**JSON STRUCTURE EXAMPLE:**
+{
+  "summary": "A concise summary of the chapter's main points and actions.",
+  "keyEvents": ["An important event happens.", "Another key plot point is revealed."],
+  "characters": ["Character A", "Character B"],
+  "mood": "Mysterious",
+  "cliffhanger": true,
+  "thematicAnalysis": "The chapter explores themes of betrayal and redemption."
+}`,
+        costPerUse: 3,
+      },
+      contextData: {
+        chapterTitle: capitulo.title,
+        wordCount: wordCount,
+        bookTitle: capitulo.book.title,
+        bookGenre: capitulo.book.bookIndex?.genre, // Safer access
+      },
+      bookContext: {
+        id: capitulo.book.id,
+        title: capitulo.book.title,
+        genre: capitulo.book.bookIndex?.genre, // Safer access
+        summary: capitulo.book.bookIndex?.summary, // Safer access
+        themes: capitulo.book.bookIndex?.themes, // Safer access
+      },
+      chapterContext: {
+        id: capitulo.id,
+        title: capitulo.title,
+        content: content,
+        summary: `Capítulo: ${capitulo.title}`,
+      },
+    };
+
+    const aiResult = await sendToAIService(aiRequest);
+    let summary, keyEvents, characters, mood, cliffhanger, thematicAnalysis;
+
+    if (aiResult.success) {
+      try {
+        // --- NEW, ROBUST PARSING LOGIC ---
+        let cleanedResponse = aiResult.response.trim();
+        const match = cleanedResponse.match(/```json\n([\s\S]*)\n```/);
+
+        if (match) {
+          cleanedResponse = match[1];
+        } else if (cleanedResponse.startsWith('```') && cleanedResponse.endsWith('```')) {
+          cleanedResponse = cleanedResponse.substring(3, cleanedResponse.length - 3).trim();
+        }
+
+        const analysis = JSON.parse(cleanedResponse);
+
+        summary = analysis.summary || `Resumen del capítulo "${capitulo.title}"`;
+        keyEvents = JSON.stringify(analysis.keyEvents || []);
+        characters = JSON.stringify(analysis.characters || []);
+        mood = analysis.mood || 'neutral';
+        cliffhanger = analysis.cliffhanger === true; // Ensure boolean
+        thematicAnalysis = analysis.thematicAnalysis || '';
+
+      } catch (parseError) {
+        console.warn('Failed to parse AI response even after cleaning. Using fallback:', parseError);
+        // Fallback if parsing still fails
+        summary = `Resumen del capítulo "${capitulo.title}" (análisis fallido)`;
+        keyEvents = JSON.stringify([]);
+        characters = JSON.stringify([]);
+        mood = 'neutral';
+        cliffhanger = false;
+        thematicAnalysis = '';
+      }
+    } else {
+      console.warn('AI analysis failed, using fallback:', aiResult.error);
+      // Fallback if AI analysis fails
+      summary = `Resumen del capítulo "${capitulo.title}"`;
+      keyEvents = JSON.stringify([]);
+      characters = JSON.stringify([]);
+      mood = 'neutral';
+      cliffhanger = false;
+      thematicAnalysis = '';
+    }
 
     const indiceActualizado = await prisma.chapterIndex.upsert({
       where: { chapterId },
@@ -206,11 +312,12 @@ export const actualizarAnalisisCapitulo = async (chapterId) => {
         mood,
         cliffhanger,
         wordCount,
-        lastAnalyzed: new Date()
+        lastAnalyzed: new Date(),
+        thematicAnalysis: thematicAnalysis || null,
       },
       create: {
         chapterId,
-        bookId: capitulo.bookId,
+        bookId: capitulo.book.id,
         content,
         summary,
         keyEvents,
@@ -218,24 +325,35 @@ export const actualizarAnalisisCapitulo = async (chapterId) => {
         mood,
         cliffhanger,
         wordCount,
-        lastAnalyzed: new Date()
+        lastAnalyzed: new Date(),
+        thematicAnalysis: thematicAnalysis || null,
       },
       include: {
         chapter: {
           select: {
             id: true,
-            title: true
-          }
-        }
-      }
+            title: true,
+          },
+        },
+      },
     });
 
-    return indiceActualizado;
+    return {
+      ...indiceActualizado,
+      aiAnalysis: aiResult.success ? {
+        success: true,
+        processingTime: aiResult.processingTime,
+        tokenUsed: aiResult.tokenUsed,
+        model: aiResult.model,
+      } : {
+        success: false,
+        error: aiResult.error,
+      },
+    };
   } catch (error) {
     throw new Error(`Error al actualizar análisis de capítulo: ${error.message}`);
   }
 };
-
 export const obtenerCapitulosPorEvento = async (evento) => {
   try {
     const indices = await prisma.chapterIndex.findMany({

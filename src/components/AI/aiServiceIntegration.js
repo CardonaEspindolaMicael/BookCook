@@ -32,9 +32,10 @@ export async function sendToGemini(params) {
     if (params.contextData) {
       fullPrompt += `Context Data: ${JSON.stringify(params.contextData)}\n\n`;
     }
-    
+      
     // Add book context if available
     if (params.bookContext) {
+      console.log('Book Context:', params.bookContext);
       fullPrompt += `Book Information:\n`;
       if (params.bookContext.summary) fullPrompt += `Summary: ${params.bookContext.summary}\n`;
       if (params.bookContext.themes) fullPrompt += `Themes: ${params.bookContext.themes}\n`;
@@ -51,6 +52,7 @@ export async function sendToGemini(params) {
       if (params.chapterContext.mood) fullPrompt += `Mood: ${params.chapterContext.mood}\n`;
       fullPrompt += "\n";
     }
+
     
     // Add the user prompt template if it exists
     if (params.interactionType.userPrompt) {
@@ -66,7 +68,7 @@ export async function sendToGemini(params) {
       
       fullPrompt += userPrompt;
     }
-    
+    console.log('Full Prompt:', fullPrompt);
     // Get the model
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
