@@ -1,5 +1,6 @@
 import { sendToAIService } from './aiServiceIntegration.js';
 
+
 // Example usage with the provided data
 const exampleAIUsage = {
   "currentUsage": 10,

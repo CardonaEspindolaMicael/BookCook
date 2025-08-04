@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fal } from "@fal-ai/client";
+import { uploadBase64Image } from "../../helpers/CloudinaryHelper.js";
+import { response } from "express";
 
 // Initialize Gemini API with the correct library
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "AIzaSyAfTaRM-E1R4XQwuLyUyXT2cENFrIsrjf0");
@@ -23,8 +25,9 @@ export async function sendToGemini(params) {
   const startTime = Date.now();
   try {
     // Build the complete prompt with context
+    console.log(params)
     let fullPrompt = params.interactionType.systemPrompt + "\n\n";
-    
+       
     // Add user query
     fullPrompt += `User Query: ${params.userQuery}\n\n`;
     
@@ -50,6 +53,7 @@ export async function sendToGemini(params) {
       if (params.chapterContext.summary) fullPrompt += `Summary: ${params.chapterContext.summary}\n`;
       if (params.chapterContext.content) fullPrompt += `Content: ${params.chapterContext.content.substring(0, 1000)}...\n`;
       if (params.chapterContext.mood) fullPrompt += `Mood: ${params.chapterContext.mood}\n`;
+      if (params.chapterContext.chapterAnalyses) fullPrompt += `Analyses :${params.chapterContext.chapterAnalyses}}\n`
       fullPrompt += "\n";
     }
 
@@ -68,7 +72,8 @@ export async function sendToGemini(params) {
       
       fullPrompt += userPrompt;
     }
-    console.log('Full Prompt:', fullPrompt);
+    
+    console.log(fullPrompt)
     // Get the model
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
@@ -104,7 +109,7 @@ export async function sendToGemini(params) {
  * @returns {string} Converted format
  */
 function convertToFluxImageSize(size) {
-  if (!size) return "landscape_4_3";
+  if (!size) return "landscape_16_9";
   
   const sizeMap = {
     "512x512": "square",
@@ -134,8 +139,8 @@ export async function generateImageWithFal(params) {
     // Optimized options for Flux Schnell - ONLY valid parameters
     const defaultOptions = {
       prompt: params.prompt,
-      image_size: "landscape_4_3",
-      num_inference_steps: 4, // Flux Schnell: 1-4 steps only
+      image_size: params.options,
+      num_imagess: 1, // Flux Schnell: 1-4 steps only
       sync_mode: true
     };
 
@@ -157,79 +162,32 @@ export async function generateImageWithFal(params) {
     
     const options = { ...defaultOptions, ...processedOptions };
 
-    console.log(`Generating image with Flux Schnell model`);
-    console.log(`Prompt: ${params.prompt}`);
-    console.log(`Final Options:`, options);
 
     const result = await fal.run(model, {
       input: options
+
     });
 
-    console.log('Fal API Response:', JSON.stringify(result, null, 2));
-
-    // Handle different response structures and prioritize URL over base64
-    let imageUrl = null;
-    let isBase64 = false;
+    const urlFinal= await uploadBase64Image(result.data.images[0].url)
     
-    if (result.data && result.data.images && result.data.images.length > 0) {
-      // Structure: result.data.images[0].url
-      const imageData = result.data.images[0];
-      if (imageData.url && !imageData.url.startsWith('data:')) {
-        imageUrl = imageData.url;
-      } else if (imageData.url && imageData.url.startsWith('data:')) {
-        imageUrl = imageData.url;
-        isBase64 = true;
-      }
-    } else if (result.images && result.images.length > 0) {
-      // Structure: result.images[0].url
-      const imageData = result.images[0];
-      if (imageData.url && !imageData.url.startsWith('data:')) {
-        imageUrl = imageData.url;
-      } else if (imageData.url && imageData.url.startsWith('data:')) {
-        imageUrl = imageData.url;
-        isBase64 = true;
-      }
-    } else if (result.data && result.data.image) {
-      // Structure: result.data.image (single image)
-      if (result.data.image.startsWith('data:')) {
-        imageUrl = result.data.image;
-        isBase64 = true;
-      } else {
-        imageUrl = result.data.image;
-      }
-    } else if (result.image) {
-      // Structure: result.image (single image)
-      if (result.image.startsWith('data:')) {
-        imageUrl = result.image;
-        isBase64 = true;
-      } else {
-        imageUrl = result.image;
-      }
-    } else {
-      throw new Error('No image found in response. Response structure: ' + JSON.stringify(result, null, 2));
-    }
-
-    if (isBase64) {
-      console.log('Warning: Received base64 image instead of URL');
-    } else {
-      console.log('Image URL:', imageUrl);
-    }
-
     return {
-      success: true,
-      imageUrl: imageUrl,
-      isBase64: isBase64,
-      processingTime: Date.now() - startTime,
-      model: model,
-      result: result,
-      seed: result.data?.seed || result.seed
+  
+        response: urlFinal,
+        tokenUsed: 400,
+        success:true,
+        processingTime: Date.now() - startTime,
+   
     };
 
   } catch (error) {
     console.error('Fal API Error:', error);
     return {
-      success: false,
       error: error.message,
+      aiResponse: {
+        error: "Error",
+        tokenUsed: 400,
+        success:false
+      },
       processingTime: Date.now() - startTime,
       details: error.body || error
     };
@@ -242,18 +200,32 @@ export async function generateImageWithFal(params) {
  * @returns {Object} Response from the appropriate AI service
  */
 export async function sendToAIService(aiRequest) {
+
   const startTime = Date.now();
   try {
-    // Check if this is an image generation request
+    // Check if this is an image generation request 
     if (aiRequest.interactionType.category === 'image_generation') {
-      return await generateImageWithFal({
-        prompt: aiRequest.userQuery,
-        options: aiRequest.contextData?.imageOptions
+      const prompt=aiRequest
+      const fullPrompt=`${prompt.interactionType.systemPrompt} + User recommendations: ${prompt.userQuery}+ 
+        userPrompt: 'Generate a detailed design concept for my book cover. Here are the details:\n' +
+      '- Book Title: ${prompt.bookContext.book.title}\n' +
+      '- Author Name: ${prompt.bookContext.book.author.name}\n' +
+      '- Genre: ${prompt.bookContext.genre} (e.g., Sci-Fi Thriller, Cozy Fantasy, Historical Romance)\n' +
+      '- Brief Synopsis: ${prompt.bookContext.summary}\n' +
+      '- Core Mood/Atmosphere: ${prompt.bookContext.tone} (e.g., Ominous and tense, whimsical and adventurous, somber and introspective)\n' +
+      'Based on this, create a design brief that includes:\n' +
+      '1.  **Visual Style:** A 1-2 sentence description of the overall aesthetic (e.g., "Minimalist graphic style with a single iconic image," "Photorealistic and cinematic," "Impressionistic watercolor feel").\n' +
+      '2.  **Color Palette:** Suggest 3-4 primary colors and explain what mood they evoke.\n' +
+      '3.  **Typography:** Describe the style of font for the title and author name (e.g., "A bold, modern sans-serif font for the title to convey tension," "An elegant, classic serif for the author name").\n' +
+      '4.  **Composition:** Detail the main focus of the cover and the arrangement of elements (e.g., "A lone figure stands before a vast, alien cityscape. The title is placed at the top in large font.").', `
+        return await generateImageWithFal({
+        prompt: fullPrompt,
+        options: { width: 800, height: 1200 }
       });
     }
 
     // Default to text generation with Gemini
-    return await sendToGemini({
+   return await sendToGemini({
       userQuery: aiRequest.userQuery,
       interactionType: aiRequest.interactionType,
       contextData: aiRequest.contextData,

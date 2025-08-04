@@ -445,7 +445,8 @@ model BookIndex {
   tone        String?  @db.VarChar(50) // "dark", "comedy", "romantic"
   genre       String?  @db.VarChar(100) // Detected genre
   wordCount   Int      @default(0)
-  
+  structureAnalysis String? @db.Text 
+  cliffhanger String?  @db.Text   // Ends with cliffhanger?
   // AI analysis metadata
   lastAnalyzed    DateTime? // When was this last processed by AI
   analysisVersion String?   // Version of AI analysis

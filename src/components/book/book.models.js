@@ -5,7 +5,28 @@ const prisma = new PrismaClient();
 export const obtenerLibros = async () => {
   try {
     const libros = await prisma.book.findMany({
-      include: {
+      select: {
+        // All scalar fields of Book
+        id: true,
+        title: true,
+        description: true,
+        cover: true,
+        authorId: true,
+        isFree: true,
+        isComplete: true,
+        totalChapters: true,
+        isNFT: true,
+        nftPrice: true,
+        maxSupply: true,
+        currentSupply: true,
+        viewCount: true,
+        averageRating: true,
+        totalReviews: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+
+        // Relationships
         author: {
           select: {
             id: true,
@@ -16,35 +37,35 @@ export const obtenerLibros = async () => {
           }
         },
         chapters: {
-          orderBy: {
-            orderIndex: 'asc'
-          }
+             select:{
+              orderIndex:true,
+              updatedAt:true
+             }
         },
         genres: {
-          include: {
-            genre: true
-          }
+          include: { genre: true }
         },
         reviews: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, name: true, email: true } }
           }
         },
-        nftOwnerships: true,
-        purchases: true,
-        bookAccesses: true,
-        aiInteractions: {
+        nftOwnerships: {
           include: {
-            interactionType: true,
-            aiAssistant: true
+            owner: { select: { id: true, name: true, email: true } }
           }
-        }
+        },
+        purchases: {
+          include: {
+            buyer: { select: { id: true, name: true, email: true } }
+          }
+        },
+        bookAccesses: {
+          include: {
+            user: { select: { id: true, name: true, email: true } }
+          }
+        },
+        readingHistory: true,
       }
     });
     return libros;
@@ -53,6 +74,7 @@ export const obtenerLibros = async () => {
     return error;
   }
 };
+
 
 export const crearLibro = async (datos) => {
   try {
@@ -183,7 +205,28 @@ export const obtenerLibroPorId = async (id) => {
   try {
     const libro = await prisma.book.findUnique({
       where: { id },
-      include: {
+      select: {
+        // All scalar fields
+        id: true,
+        title: true,
+        description: true,
+        cover: true,
+        authorId: true,
+        isFree: true,
+        isComplete: true,
+        totalChapters: true,
+        isNFT: true,
+        nftPrice: true,
+        maxSupply: true,
+        currentSupply: true,
+        viewCount: true,
+        averageRating: true,
+        totalReviews: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+
+        // Relationships
         author: {
           select: {
             id: true,
@@ -193,82 +236,40 @@ export const obtenerLibroPorId = async (id) => {
             isPremium: true
           }
         },
-        chapters: {
-          orderBy: {
-            orderIndex: 'asc'
-          }
-        },
         genres: {
-          include: {
-            genre: true
-          }
+          include: { genre: true }
         },
         reviews: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, name: true, email: true } }
           }
         },
         nftOwnerships: {
           include: {
-            owner: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+            owner: { select: { id: true, name: true, email: true } }
           }
         },
         purchases: {
           include: {
-            buyer: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+            buyer: { select: { id: true, name: true, email: true } }
           }
         },
         bookAccesses: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, name: true, email: true } }
           }
         },
-        aiInteractions: {
-          include: {
-            interactionType: true,
-            aiAssistant: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
-          }
-        },
-        bookIndex: true
+        readingHistory: true,
+        bookmarks: true
       }
     });
     return libro;
   } catch (error) {
     console.error(error);
     return error;
-  } 
+  }
 };
+
 
 export const obtenerLibrosPorAutor = async (authorId) => {
   try {

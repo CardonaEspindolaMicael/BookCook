@@ -8,6 +8,7 @@ import routerChapter from "../components/chapter/chapter.routes.js";
 import routerGenre from "../components/genre/genre.routes.js";
 import routerBookGenre from "../components/bookGenre/bookGenre.routes.js";
 import routerChapterIndex from "../components/chapterIndex/chapterIndex.routes.js"
+import routerBookIndex from "../components/bookIndex/bookIndex.routes.js"
 
 const router = Router(); 
 router.use('/usuario', routerUser); 
@@ -19,6 +20,7 @@ router.use('/chapters', routerChapter);
 router.use('/genre', routerGenre);
 router.use('/book-genre', routerBookGenre);
 router.use('/chapters-index', routerChapterIndex)
+router.use('/books-index', routerBookIndex)
 
 export default router;
 

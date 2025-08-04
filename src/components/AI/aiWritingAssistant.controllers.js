@@ -1,3 +1,5 @@
+
+import { sendToAIService } from "./aiServiceIntegration.js";
 import {
   checkAIUsage,
   createAIInteraction,
@@ -16,7 +18,7 @@ import {
 import { aiInteractionSchema } from "./dto/aiInteraction.dto.js";
 import { createAIUsageSchema } from "./dto/aiUsage.dto.js";
 import { interactionTypeCreateSchema } from "./dto/interactionType.dto.js";
-import { sendToAIService, checkAIServiceConfig } from "./aiServiceIntegration.js";
+
 
 export const getAIWritingOptions = async (req, res) => {
   try {
@@ -92,17 +94,15 @@ export const requestAIHelp = async (req, res) => {
     }
 
     // Get context data
-    let bookContext = "How to write a book without sight";
-    let chapterContext = "Chapter 1 The man who dreams of a world without sight";
+    let bookContext = null;
+    let chapterContext = null;
 
     if (bookId) {
       bookContext = await getBookIndex(bookId);
-      console.log('bookContext', bookContext);
     }
 
     if (chapterId) {
       chapterContext = await getChapterIndex(chapterId);
-      console.log('chapterContext', chapterContext);
     }
 
     // Prepare AI request
@@ -116,8 +116,9 @@ export const requestAIHelp = async (req, res) => {
 
     // Send to AI service
     const aiResponse = await sendToAIService(aiRequest);
-    console.log('aiResponse', aiResponse);
+  
     if (!aiResponse.success) {
+      console.log(aiResponse)
       // Create failed interaction record
       await createAIInteraction({
         userId,
@@ -139,13 +140,15 @@ export const requestAIHelp = async (req, res) => {
         error: aiResponse.error
       });
     }
+    console.log(aiResponse)
+   
 
     // Create successful interaction record
     const interaction = await createAIInteraction({
       userId,
       bookId,
       chapterId,
-      aiAssistantId: interactionType.aiAssistantId,
+     // aiAssistantId: interactionType.aiAssistantId,
       interactionTypeId,
       userQuery,
       contextData,
