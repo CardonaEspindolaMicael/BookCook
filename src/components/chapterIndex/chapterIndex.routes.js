@@ -8,8 +8,8 @@ import {
   deleteIndiceCapitulo,
   putAnalisisCapitulo,
   getCapitulosPorEvento,
-  getCapitulosPorPersonaje,
-  getCapitulosPorEstadoAnimo
+  getCapitulosPorEstadoAnimo,
+  getPersonajePorCapitulo
 } from "./chapterIndex.controllers.js";
 
 const router = express.Router();
@@ -17,7 +17,7 @@ const router = express.Router();
 router.get("/", getIndicesCapitulo);
 router.get("/capitulo/:chapterId", getIndicePorCapitulo);
 router.get("/evento/:evento", getCapitulosPorEvento);
-router.get("/personaje/:personaje", getCapitulosPorPersonaje);
+router.get("/personaje/:chapterId", getPersonajePorCapitulo);
 router.get("/estado-animo/:estadoAnimo", getCapitulosPorEstadoAnimo);
 router.get("/:id", getIndicePorId);
 router.post("/", postIndiceCapitulo);

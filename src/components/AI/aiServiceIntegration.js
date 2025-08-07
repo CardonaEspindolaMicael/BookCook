@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fal } from "@fal-ai/client";
 import { uploadBase64Image } from "../../helpers/CloudinaryHelper.js";
 import { response } from "express";
+import { sendToFalImage } from "./prompts/ImagesPromtps.js";
 
 // Initialize Gemini API with the correct library
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "AIzaSyAfTaRM-E1R4XQwuLyUyXT2cENFrIsrjf0");
@@ -205,23 +206,7 @@ export async function sendToAIService(aiRequest) {
   try {
     // Check if this is an image generation request 
     if (aiRequest.interactionType.category === 'image_generation') {
-      const prompt=aiRequest
-      const fullPrompt=`${prompt.interactionType.systemPrompt} + User recommendations: ${prompt.userQuery}+ 
-        userPrompt: 'Generate a detailed design concept for my book cover. Here are the details:\n' +
-      '- Book Title: ${prompt.bookContext.book.title}\n' +
-      '- Author Name: ${prompt.bookContext.book.author.name}\n' +
-      '- Genre: ${prompt.bookContext.genre} (e.g., Sci-Fi Thriller, Cozy Fantasy, Historical Romance)\n' +
-      '- Brief Synopsis: ${prompt.bookContext.summary}\n' +
-      '- Core Mood/Atmosphere: ${prompt.bookContext.tone} (e.g., Ominous and tense, whimsical and adventurous, somber and introspective)\n' +
-      'Based on this, create a design brief that includes:\n' +
-      '1.  **Visual Style:** A 1-2 sentence description of the overall aesthetic (e.g., "Minimalist graphic style with a single iconic image," "Photorealistic and cinematic," "Impressionistic watercolor feel").\n' +
-      '2.  **Color Palette:** Suggest 3-4 primary colors and explain what mood they evoke.\n' +
-      '3.  **Typography:** Describe the style of font for the title and author name (e.g., "A bold, modern sans-serif font for the title to convey tension," "An elegant, classic serif for the author name").\n' +
-      '4.  **Composition:** Detail the main focus of the cover and the arrangement of elements (e.g., "A lone figure stands before a vast, alien cityscape. The title is placed at the top in large font.").', `
-        return await generateImageWithFal({
-        prompt: fullPrompt,
-        options: { width: 800, height: 1200 }
-      });
+      return await sendToFalImage(aiRequest);
     }
 
     // Default to text generation with Gemini

@@ -4,7 +4,7 @@ export const aiInteractionSchema = z.object({
   interactionTypeId: z.string().uuid("El ID del tipo de interacción debe ser un UUID válido"),
   bookId: z.string().uuid("El ID del libro debe ser un UUID válido").optional(),
   chapterId: z.string().uuid("El ID del capítulo debe ser un UUID válido").optional(),
-  userQuery: z.string().min(1, "La consulta del usuario es requerida").max(2000, "La consulta no puede exceder 2000 caracteres"),
+  userQuery: z.string().max(2000, "La consulta no puede exceder 400 caracteres").optional(),
   contextData: z.string().optional()
 });
 

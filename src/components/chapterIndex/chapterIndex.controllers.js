@@ -7,8 +7,8 @@ import {
   obtenerIndicePorCapitulo,
   actualizarAnalisisCapitulo,
   obtenerCapitulosPorEvento,
-  obtenerCapitulosPorPersonaje,
-  obtenerCapitulosPorEstadoAnimo
+  obtenerCapitulosPorEstadoAnimo,
+  obtenerPersonajesPorCapituloModel
 } from "./chapterIndex.models.js";
 import { crearIndiceCapituloSchema } from "./dto/chapterIndex.dto.js";
 import { actualizarIndiceCapituloSchema } from "./dto/chapterIndex.update.dto.js";
@@ -123,10 +123,10 @@ export const getCapitulosPorEvento = async (req, res) => {
   }
 };
 
-export const getCapitulosPorPersonaje = async (req, res) => {
-  const { personaje } = req.params;
+export const getPersonajePorCapitulo = async (req, res) => {
+  const { chapterId } = req.params;
   try {
-    const response = await obtenerCapitulosPorPersonaje(personaje);
+    const response = await obtenerPersonajesPorCapituloModel(chapterId);
     res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ error: error.message });

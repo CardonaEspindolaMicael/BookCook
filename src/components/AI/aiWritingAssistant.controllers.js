@@ -93,6 +93,9 @@ export const requestAIHelp = async (req, res) => {
       });
     }
 
+    //create a function for create all the chapters and book context
+    // This can be optimized based on your data structure and needs
+   //..........................
     // Get context data
     let bookContext = null;
     let chapterContext = null;

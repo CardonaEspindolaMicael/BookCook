@@ -392,43 +392,36 @@ export const obtenerCapitulosPorEvento = async (evento) => {
   }
 };
 
-export const obtenerCapitulosPorPersonaje = async (personaje) => {
+export const obtenerPersonajesPorCapituloModel = async (chapterId) => {
   try {
     const indices = await prisma.chapterIndex.findMany({
       where: {
-        characters: {
-          contains: personaje
-        }
+        chapterId: chapterId
       },
-      include: {
-        chapter: {
-          select: {
-            id: true,
-            title: true,
-            book: {
-              select: {
-                id: true,
-                title: true,
-                author: {
-                  select: {
-                    id: true,
-                    name: true
-                  }
-                }
-              }
-            }
-          }
-        }
+      select: {
+        characters: true
       },
       orderBy: {
         updatedAt: 'desc'
       }
     });
-    return indices;
+
+    // Assuming only one chapterIndex per chapterId
+    const personajesArray = indices.length > 0
+      ? JSON.parse(indices[0].characters)
+      : [];
+
+    const personajesObject = personajesArray.reduce((acc, personaje, index) => {
+      acc[`personaje${index + 1}`] = personaje;
+      return acc;
+    }, {});
+
+    return personajesObject;
   } catch (error) {
-    throw new Error(`Error al obtener capítulos por personaje: ${error.message}`);
+    throw new Error(`Error al obtener personajes por capítulo: ${error.message}`);
   }
 };
+
 
 export const obtenerCapitulosPorEstadoAnimo = async (estadoAnimo) => {
   try {
