@@ -23,3 +23,19 @@ export function buildChapterContext(chapterAnalyses) {
     return result;
   }
   
+  export function cleanJsonString(str) {
+    if (!str) return "{}"; // default empty object if undefined/null
+    return str
+      .replace(/```json|```/gi, "") // remove code block markers
+      .trim();
+  }
+  
+ export function parseToJson(str) {
+    try {
+      return JSON.parse(str);
+    } catch (error) {
+      console.error("Invalid JSON from AI:", error);
+      return {}; // return empty object instead of crashing
+    }
+  }
+  

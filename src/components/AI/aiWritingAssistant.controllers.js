@@ -1,5 +1,8 @@
 
-import { sendToAIService } from "./aiServiceIntegration.js";
+import { parse } from "dotenv";
+import { cleanJsonString, parseToJson } from "../../helpers/BookIndexHelper.js";
+import { crearLibro } from "../book/book.models.js";
+import { generateBookChapters, sendToAIService } from "./aiServiceIntegration.js";
 import {
   checkAIUsage,
   createAIInteraction,
@@ -18,6 +21,7 @@ import {
 import { aiInteractionSchema } from "./dto/aiInteraction.dto.js";
 import { createAIUsageSchema } from "./dto/aiUsage.dto.js";
 import { interactionTypeCreateSchema } from "./dto/interactionType.dto.js";
+
 
 
 export const getAIWritingOptions = async (req, res) => {
@@ -92,10 +96,7 @@ export const requestAIHelp = async (req, res) => {
         availableCredits: aiUsage.remainingCredits
       });
     }
-
-    //create a function for create all the chapters and book context
-    // This can be optimized based on your data structure and needs
-   //..........................
+   
     // Get context data
     let bookContext = null;
     let chapterContext = null;
@@ -191,6 +192,108 @@ export const createInteractionTypeController = async (req, res) => {
   }
 };
 
+export const createFullBook = async (req,res) => {
+    const { 
+      interactionTypeId, 
+      userQuery,
+      isComplete = false,
+      totalChapters = 0
+    } = req.body;
+    const {userId} = req.params;
+
+const prompt = `You are an expert book creator AI. Using the following metadata and user request, create a comprehensive book outline.
+
+Book Metadata:
+- User Request: ${userQuery}
+- Total Chapters Required: ${totalChapters}
+
+Instructions:
+1. Create a detailed book outline based on the user request: "${userQuery}"
+2. Adapt the tone, style, and genre to match the user's request
+3. Generate a comprehensive summary that serves as a complete blueprint for ${totalChapters} chapters
+4. The summary must include detailed chapter breakdowns that provide enough information to write full chapters
+
+Return ONLY a JSON object with this exact structure:
+{
+  "title": "{title}",
+  "description": "{description}",
+  "summary": "A comprehensive chapter-by-chapter breakdown of the entire book. For each of the ${totalChapters} chapters, include: Chapter number and title, main characters introduced or featured, key plot points and events, important dialogue or concepts, chapter objectives and outcomes, transitions to next chapter. Each chapter summary should be detailed enough (100-200 words) to serve as a complete writing guide for generating the full chapter content later."
+}
+
+Requirements for the summary section:
+- Cover all ${totalChapters} chapters in sequential order
+- Each chapter summary should be 50-100 words
+- Include character names, key events, plot developments
+- Specify the chapter's role in the overall narrative arc
+- Provide enough detail that a writer could create a full chapter from each summary
+- Maintain consistency in tone and style throughout
+- Ensure logical flow and progression between chapters
+
+Example format for summary:
+"Chapter 1: [Title] - In this opening chapter, we meet protagonist [Character Name] who [key event/situation]. The chapter establishes [setting/context] and introduces the central conflict of [main problem]. Key scenes include [specific events]. This sets up the foundation for the entire story.
+
+Chapter 2: [Title] - Building on the previous chapter, [Character] faces [new challenge]. We're introduced to [new characters] who [their roles]. The plot thickens as [key developments]. This chapter advances the story by [specific progression]..."
+
+Do not include any explanations or additional text outside the JSON object.`;
+ // Check AI usage and interaction cost
+    const aiUsage = await checkAIUsage(userId);
+    const interactionType = await getAllInteractionType(interactionTypeId); 
+    if (!interactionType) {
+      return res.status(404).json({ message: "Tipo de interacción no encontrado" });
+    }
+
+    if (aiUsage.remainingCredits < interactionType.costPerUse) {
+      return res.status(402).json({
+        message: "Créditos insuficientes para esta interacción",
+        requiredCredits: interactionType.costPerUse,
+        availableCredits: aiUsage.remainingCredits
+      });
+    }
+   
+const aiRequest = {
+      interactionType,
+      userQuery: prompt
+    };
+    const aiResponse = await sendToAIService(aiRequest);
+
+    console.log(aiResponse)
+    if (!aiResponse.success) {
+      console.error('AI Service Error:', aiResponse.error);
+      return res.status(500).json({ error: aiResponse.error });
+    }
+
+    const parsedContent = parseToJson(cleanJsonString(aiResponse.response));
+    const bookJson={
+        title: parsedContent.title || "Untitled Book",
+        description: parsedContent.description || "A generated book",
+        cover: null,
+        authorId: userId,
+        isFree: false,
+        isComplete: isComplete,
+        totalChapters: totalChapters,
+        isNFT: false,
+        nftPrice: null,
+        maxSupply: null,
+        status: 'draft'
+    }
+   
+    const createdBook = await crearLibro(bookJson);
+
+
+    await generateBookChapters(parsedContent.summary,createdBook.id,totalChapters)
+
+    return res.status(200).json({
+      message: "Book generated successfully",
+      bookContent: createdBook,
+      tokenUsed: aiResponse.tokenUsed*totalChapters,
+      processingTime: aiResponse.processingTime
+    });
+  };
+
+  
+
+
+
 export const rateAIResponse = async (req, res) => {
   try {
     const { interactionId, satisfaction, wasUseful } = req.body;
@@ -265,7 +368,7 @@ export const getAIUsage = async (req, res) => {
   try {
     const {userId}=req.params;
     const aiUsage = await checkAIUsage(userId);
-
+    
     res.status(200).json({
       currentUsage: aiUsage.currentUsage,
       monthlyLimit: aiUsage.monthlyLimit,

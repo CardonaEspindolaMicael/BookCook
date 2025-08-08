@@ -3,6 +3,10 @@ import { fal } from "@fal-ai/client";
 import { uploadBase64Image } from "../../helpers/CloudinaryHelper.js";
 import { response } from "express";
 import { sendToFalImage } from "./prompts/ImagesPromtps.js";
+import { createFullBook, sendToGemini } from "./prompts/GeminiPrompts.js";
+import { crearCapitulo } from "../chapter/chapter.models.js";
+import { parse } from "dotenv";
+import { cleanJsonString, parseToJson } from "../../helpers/BookIndexHelper.js";
 
 // Initialize Gemini API with the correct library
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "AIzaSyAfTaRM-E1R4XQwuLyUyXT2cENFrIsrjf0");
@@ -22,87 +26,7 @@ fal.config({
  * @param {Object} params.chapterContext - Chapter context if available
  * @returns {Object} Response with success status, response text, and token usage
  */
-export async function sendToGemini(params) {
-  const startTime = Date.now();
-  try {
-    // Build the complete prompt with context
-    console.log(params)
-    let fullPrompt = params.interactionType.systemPrompt + "\n\n";
-       
-    // Add user query
-    fullPrompt += `User Query: ${params.userQuery}\n\n`;
-    
-    // Add context data if available
-    if (params.contextData) {
-      fullPrompt += `Context Data: ${JSON.stringify(params.contextData)}\n\n`;
-    }
-      
-    // Add book context if available
-    if (params.bookContext) {
-      console.log('Book Context:', params.bookContext);
-      fullPrompt += `Book Information:\n`;
-      if (params.bookContext.summary) fullPrompt += `Summary: ${params.bookContext.summary}\n`;
-      if (params.bookContext.themes) fullPrompt += `Themes: ${params.bookContext.themes}\n`;
-      if (params.bookContext.genre) fullPrompt += `Genre: ${params.bookContext.genre}\n`;
-      if (params.bookContext.tone) fullPrompt += `Tone: ${params.bookContext.tone}\n`;
-      fullPrompt += "\n";
-    }
-    
-    // Add chapter context if available
-    if (params.chapterContext) {
-      fullPrompt += `Chapter Information:\n`;
-      if (params.chapterContext.summary) fullPrompt += `Summary: ${params.chapterContext.summary}\n`;
-      if (params.chapterContext.content) fullPrompt += `Content: ${params.chapterContext.content.substring(0, 1000)}...\n`;
-      if (params.chapterContext.mood) fullPrompt += `Mood: ${params.chapterContext.mood}\n`;
-      if (params.chapterContext.chapterAnalyses) fullPrompt += `Analyses :${params.chapterContext.chapterAnalyses}}\n`
-      fullPrompt += "\n";
-    }
 
-    
-    // Add the user prompt template if it exists
-    if (params.interactionType.userPrompt) {
-      // Replace placeholders in user prompt
-      let userPrompt = params.interactionType.userPrompt;
-      
-      if (params.bookContext) {
-        userPrompt = userPrompt.replace('{genre}', params.bookContext.genre || 'Unknown');
-        userPrompt = userPrompt.replace('{summary}', params.bookContext.summary || 'No summary available');
-        userPrompt = userPrompt.replace('{themes}', params.bookContext.themes || 'No themes specified');
-        userPrompt = userPrompt.replace('{protagonist_info}', params.bookContext.characters || 'No character info available');
-      }
-      
-      fullPrompt += userPrompt;
-    }
-    
-    console.log(fullPrompt)
-    // Get the model
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-    
-    // Generate content with Gemini
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Estimate token usage (rough approximation)
-    const tokenUsed = Math.ceil(fullPrompt.length / 4) + Math.ceil(text.length / 4);
-    
-    return {
-      success: true,
-      response: text,
-      tokenUsed,
-      processingTime: Date.now() - startTime,
-      model: "gemini-2.0-flash-exp"
-    };
-    
-  } catch (error) {
-    console.error('Gemini API Error:', error);
-    return {
-      success: false,
-      error: error.message,
-      processingTime: Date.now() - startTime
-    };
-  }
-}
 
 /**
  * Convert old image size format to Fal AI format for Flux
@@ -195,6 +119,95 @@ export async function generateImageWithFal(params) {
   }
 }
 
+export async function generateBookChapters(summary, bookId,totalChapters) {
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.0-flash-exp",
+    generationConfig: {
+      temperature: 1.4,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 8192
+    }
+  });
+
+  
+
+  try {
+   for (let i = 1; i <= totalChapters; i++) {
+  const chapterPrompt = `You are an expert writer creating Chapter ${i} of ${totalChapters}.
+
+Book Summary: ${summary}
+
+CRITICAL INSTRUCTIONS:
+1. You are writing Chapter ${i} (Chapter Number: ${i})
+2. Look for "Chapter ${i}" in the book summary above
+3. Extract the title, characters, and events specifically mentioned for Chapter ${i}
+4. Write exactly 100+ words of original content based ONLY on Chapter ${i}'s summary
+5. Do NOT write about other chapters - focus ONLY on Chapter ${i}
+
+Current Chapter Context: Chapter ${i}
+- Find Chapter ${i} in the summary
+- Use the title mentioned for Chapter ${i}  
+- Include the characters mentioned for Chapter ${i}
+- Cover the events described for Chapter ${i}
+- Stay within Chapter ${i}'s scope only
+
+Return ONLY this JSON format:
+{
+  "title": "Chapter ${i}: [Extract exact title from Chapter ${i} summary]",
+  "content": "Write 100+ words covering only the events, characters, and plot points mentioned in Chapter ${i} of the summary...",
+  "orderIndex": ${i},
+  "bookId": "${bookId}",
+  "isFree": true,
+  "wordCount": 0
+}
+
+Remember: You are writing Chapter ${i}. Look for Chapter ${i} in the summary. Use only Chapter ${i} information.`;
+
+  
+    const result = await model.generateContent(chapterPrompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    const chapterData = parseToJson(cleanJsonString(text));
+    console.log(`Parsed data for Chapter ${i}:`, chapterData);
+    
+    // Validate that we got the right chapter
+    if (!chapterData.title || !chapterData.content) {
+      console.error(`Chapter ${i} generation failed - missing title or content`);
+      console.log("Full response:", text);
+    }
+    
+    const contentChapter = {
+      title: chapterData.title || `Chapter ${i}`, // fallback title
+      content: chapterData.content || `Chapter ${i} content generation failed.`,
+      orderIndex: i,
+      bookId: bookId,
+      isFree: true,
+      wordCount: chapterData.content ? 
+        chapterData.content.split(/\s+/).filter(word => word.length > 0).length : 0
+    };
+    
+    console.log(`Created Chapter ${i}:`, contentChapter.title);
+    
+    const resp = await crearCapitulo(contentChapter);
+    console.log(`Database response for Chapter ${i}:`, resp);
+    
+    // Optional: Add delay between chapters to avoid rate limiting
+    if (i < totalChapters) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+  
+  } }catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+  
+
 /**
  * Main AI service function that routes requests to appropriate services
  * @param {Object} aiRequest - The complete AI request object
@@ -209,13 +222,23 @@ export async function sendToAIService(aiRequest) {
       return await sendToFalImage(aiRequest);
     }
 
+    if(aiRequest.interactionType.category === 'book_drafter') {
+      return await createFullBook({
+      userQuery: aiRequest.userQuery,
+      interactionType: aiRequest.interactionType,
+      genAI: genAI
+    });
+    }
+
+
     // Default to text generation with Gemini
    return await sendToGemini({
       userQuery: aiRequest.userQuery,
       interactionType: aiRequest.interactionType,
       contextData: aiRequest.contextData,
       bookContext: aiRequest.bookContext,
-      chapterContext: aiRequest.chapterContext
+      chapterContext: aiRequest.chapterContext,
+      genAI: genAI
     });
 
   } catch (error) {
@@ -227,6 +250,8 @@ export async function sendToAIService(aiRequest) {
     };
   }
 }
+
+
 
 /**
  * Get available Fal AI models for image generation (aunque siempre usaremos Flux Schnell)
