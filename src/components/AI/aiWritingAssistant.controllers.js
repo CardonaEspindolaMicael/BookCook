@@ -201,40 +201,74 @@ export const createFullBook = async (req,res) => {
     } = req.body;
     const {userId} = req.params;
 
-const prompt = `You are an expert book creator AI. Using the following metadata and user request, create a comprehensive book outline.
+const prompt = `
+You are an expert book creator AI.
 
-Book Metadata:
-- User Request: ${userQuery}
+Your task is to create a **comprehensive book outline** based strictly on the metadata below and return it in **valid JSON only** — no explanations, no extra commentary.
+
+---
+
+## Book Metadata:
+- User Request: "${userQuery}"
 - Total Chapters Required: ${totalChapters}
 
-Instructions:
-1. Create a detailed book outline based on the user request: "${userQuery}"
-2. Adapt the tone, style, and genre to match the user's request
-3. Generate a comprehensive summary that serves as a complete blueprint for ${totalChapters} chapters
-4. The summary must include detailed chapter breakdowns that provide enough information to write full chapters
+---
 
-Return ONLY a JSON object with this exact structure:
+## Output Requirements:
+Return ONLY a JSON object with the exact structure below:
+
 {
-  "title": "{title}",
-  "description": "{description}",
-  "summary": "A comprehensive chapter-by-chapter breakdown of the entire book. For each of the ${totalChapters} chapters, include: Chapter number and title, main characters introduced or featured, key plot points and events, important dialogue or concepts, chapter objectives and outcomes, transitions to next chapter. Each chapter summary should be detailed enough (100-200 words) to serve as a complete writing guide for generating the full chapter content later."
+  "title": "string - a compelling book title matching the request",
+  "description": "string - 1 paragraph (50–80 words) describing the overall book concept",
+  "summary": [
+    {
+      "chapter_number": number,
+      "chapter_title": "string",
+      "main_characters": ["list of character names introduced or featured"],
+      "key_events": ["list of main plot points and events"],
+      "important_dialogue": ["list of important dialogue lines or concepts"],
+      "objectives_and_outcomes": "string - what this chapter achieves in the story arc",
+      "transition_to_next": "string - how this chapter connects to the next one"
+    }
+  ]
 }
 
-Requirements for the summary section:
-- Cover all ${totalChapters} chapters in sequential order
-- Each chapter summary should be 50-100 words
-- Include character names, key events, plot developments
-- Specify the chapter's role in the overall narrative arc
-- Provide enough detail that a writer could create a full chapter from each summary
-- Maintain consistency in tone and style throughout
-- Ensure logical flow and progression between chapters
+---
 
-Example format for summary:
-"Chapter 1: [Title] - In this opening chapter, we meet protagonist [Character Name] who [key event/situation]. The chapter establishes [setting/context] and introduces the central conflict of [main problem]. Key scenes include [specific events]. This sets up the foundation for the entire story.
+## Rules for the "summary" array:
+- Must contain exactly ${totalChapters} objects, one per chapter in sequential order.
+- Each chapter’s "objectives_and_outcomes" and "transition_to_next" must be 50–100 words.
+- Maintain consistent tone and style according to the user’s request.
+- Ensure logical narrative flow between chapters.
+- Include enough detail that a writer could create a full chapter from each summary.
 
-Chapter 2: [Title] - Building on the previous chapter, [Character] faces [new challenge]. We're introduced to [new characters] who [their roles]. The plot thickens as [key developments]. This chapter advances the story by [specific progression]..."
+---
 
-Do not include any explanations or additional text outside the JSON object.`;
+## Example format:
+{
+  "title": "The Dragon's Apprentice",
+  "description": "In a realm torn between magic and steel, a young mage must...",
+  "summary": [
+    {
+      "chapter_number": 1,
+      "chapter_title": "Shadows Over Eldoria",
+      "main_characters": ["Kaelen", "Eldric the Dragon"],
+      "key_events": ["Kaelen meets Eldric", "Ancient prophecy revealed"],
+      "important_dialogue": ["'You are the last hope of Eldoria.'"],
+      "objectives_and_outcomes": "Kaelen, a young mage, discovers his destiny...",
+      "transition_to_next": "Kaelen sets out to the Northern Peaks..."
+    }
+  ]
+}
+
+---
+
+### IMPORTANT:
+- Follow the JSON schema exactly.
+- Do not include any text outside of the JSON object.
+- Ensure the JSON is valid and parsable.
+`;
+
  // Check AI usage and interaction cost
     const aiUsage = await checkAIUsage(userId);
     const interactionType = await getAllInteractionType(interactionTypeId); 
@@ -262,7 +296,7 @@ const aiRequest = {
       return res.status(500).json({ error: aiResponse.error });
     }
 
-    const parsedContent = parseToJson(cleanJsonString(aiResponse.response));
+    const parsedContent =aiResponse.response;
     const bookJson={
         title: parsedContent.title || "Untitled Book",
         description: parsedContent.description || "A generated book",
@@ -276,7 +310,7 @@ const aiRequest = {
         maxSupply: null,
         status: 'draft'
     }
-   
+   console.log(parsedContent.summary)
     const createdBook = await crearLibro(bookJson);
 
 

@@ -52,7 +52,11 @@ export async function sendToGemini(params) {
     
     console.log(fullPrompt)
     // Get the model
-    const model = params.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = params.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp", // can use 1.5-flash if you want cheaper/faster
+  generationConfig: {
+    temperature: 0.8,
+    responseMimeType: "application/json" // Force JSON output
+  } });
     
     // Generate content with Gemini
     const result = await model.generateContent(fullPrompt);
@@ -64,7 +68,7 @@ export async function sendToGemini(params) {
     
     return {
       success: true,
-      response: text,
+      response: JSON.parse(text), 
       tokenUsed,
       processingTime: Date.now() - startTime,
       model: "gemini-2.0-flash-exp"
@@ -108,7 +112,11 @@ export async function createFullBook(params) {
     */
 
     // Get the model
-    const model = params.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = params.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp", // can use 1.5-flash if you want cheaper/faster
+  generationConfig: {
+    temperature: 0.8,
+    responseMimeType: "application/json" // Force JSON output
+  } });
     
     // Generate content with Gemini
     const result = await model.generateContent(fullPrompt);

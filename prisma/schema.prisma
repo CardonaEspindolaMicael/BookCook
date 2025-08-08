@@ -408,7 +408,7 @@ model AIInteraction {
   // The actual AI conversation
   userQuery         String   @db.Text     // User's request
   contextData       String?  @db.Text     // Book/chapter content for context
-  aiResponse        String   @db.Text     // AI's response
+  aiResponse        Json      // AI's response
   
   // Metadata for indexing and analysis
   tokenUsed         Int      @default(0)  // Tokens consumed
