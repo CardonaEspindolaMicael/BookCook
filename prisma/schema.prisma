@@ -437,19 +437,25 @@ model BookIndex {
   bookId      String   @unique
   
   // Extracted content for AI analysis
-  fullText    String   @db.Text     // All chapters combined
-  summary     String?  @db.Text     // AI-generated summary
-  themes      String?  @db.Text     // JSON array of themes
-  characters  String?  @db.Text     // JSON array of characters
-  plotPoints  String?  @db.Text     // JSON array of key plot points
-  tone        String?  @db.VarChar(50) // "dark", "comedy", "romantic"
-  genre       String?  @db.VarChar(100) // Detected genre
+  fullText    String   @db.Text          // All chapters combined
+  summary     String?  @db.Text          // AI-generated summary
+  
+  // Changed from String? to String[] for array support
+  themes      String[]                   // JSON array of themes
+  characters  String[]                   // JSON array of characters
+  plotPoints  String[]                   // JSON array of key plot points
+  
+  tone        String?  @db.VarChar(50)    // "dark", "comedy", "romantic"
+  genre       String?  @db.VarChar(100)   // Detected genre
   wordCount   Int      @default(0)
-  structureAnalysis String? @db.Text 
-  cliffhanger String?  @db.Text   // Ends with cliffhanger?
+  structureAnalysis String? @db.Text
+  
+  // Changed from String? to String[] for cliffhanger array
+  cliffhanger String[]                    // Ends with cliffhanger?
+  
   // AI analysis metadata
-  lastAnalyzed    DateTime? // When was this last processed by AI
-  analysisVersion String?   // Version of AI analysis
+  lastAnalyzed    DateTime?               // When was this last processed by AI
+  analysisVersion String?                 // Version of AI analysis
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -459,6 +465,7 @@ model BookIndex {
   @@index([bookId])
   @@map("book_indexes")
 }
+
 
 // Chapter Indexing for more granular AI help
 model ChapterIndex {

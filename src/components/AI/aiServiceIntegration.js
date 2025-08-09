@@ -7,6 +7,7 @@ import { createFullBook, sendToGemini } from "./prompts/GeminiPrompts.js";
 import { crearCapitulo } from "../chapter/chapter.models.js";
 import { parse } from "dotenv";
 import { cleanJsonString, parseToJson } from "../../helpers/BookIndexHelper.js";
+import { crearIndiceCapitulo } from "../chapterIndex/chapterIndex.models.js";
 
 // Initialize Gemini API with the correct library
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "AIzaSyAfTaRM-E1R4XQwuLyUyXT2cENFrIsrjf0");
@@ -135,6 +136,7 @@ export async function generateBookChapters(chapterSummaries, bookId, totalChapte
   try {
     for (let i = 1; i <= totalChapters; i++) {
       // Find the chapter object with this number
+       
       const chapterInfo = chapterSummaries.find(c => c.chapter_number === i);
       if (!chapterInfo) {
         console.error(`No summary found for Chapter ${i}`);
@@ -184,7 +186,10 @@ Return ONLY this JSON format:
         console.error(`Chapter ${i} generation failed - missing title or content`);
         console.log("Full response:", text);
         continue;
-      }
+       }
+      let wordCount = chapterData.content
+          ? chapterData.content.split(/\s+/).filter(word => word.length > 0).length
+          : 0
 
       const contentChapter = {
         title: chapterData.title,
@@ -192,9 +197,7 @@ Return ONLY this JSON format:
         orderIndex: i,
         bookId: bookId,
         isFree: true,
-        wordCount: chapterData.content
-          ? chapterData.content.split(/\s+/).filter(word => word.length > 0).length
-          : 0
+        wordCount: wordCount,
       };
 
       console.log(`Created Chapter ${i}:`, contentChapter.title);
@@ -202,10 +205,28 @@ Return ONLY this JSON format:
       const resp = await crearCapitulo(contentChapter);
       console.log(`Database response for Chapter ${i}:`, resp);
 
+      const chapterIndexSchema={
+        chapterId: resp.id,
+        bookId: bookId,
+        content: "",
+        summary: chapterInfo.objectives_and_outcomes,
+        keyEvents:  JSON.stringify(chapterInfo.key_events),
+        characters: JSON.stringify(chapterInfo.main_characters),
+        mood: chapterInfo.mood_and_tone || "Neutral",
+        cliffhanger: false,
+        wordCount:  wordCount
+      }
+       await crearIndiceCapitulo(chapterIndexSchema);
+
       // Delay to prevent rate limiting
       if (i < totalChapters) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
+    }
+
+    return {
+      success: true,
+      message: "All chapters generated successfully"
     }
   } catch (error) {
     return {

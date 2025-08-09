@@ -318,23 +318,16 @@ Based on the chapter analyses, provide the following fields in the JSON structur
     // The robust parsing logic remains essential
     if (aiResult.success) {
       try {
-        let cleanedResponse = aiResult.response.trim();
-        const match = cleanedResponse.match(/```json\n([\s\S]*)\n```/);
-        if (match) {
-          cleanedResponse = match[1];
-        } else if (cleanedResponse.startsWith('```') && cleanedResponse.endsWith('```')) {
-          cleanedResponse = cleanedResponse.substring(3, cleanedResponse.length - 3).trim();
-        }
-        const analysis = JSON.parse(cleanedResponse);
-
-        summary = analysis.summary || `Resumen del libro "${libro.title}"`;
-        themes = JSON.stringify(analysis.themes || []);
-        characters = JSON.stringify(analysis.characters || []);
-        plotPoints = JSON.stringify(analysis.plotPoints || []);
-        tone = analysis.tone || 'neutral';
-        genre = analysis.genre || 'fiction';
-        structureAnalysis = analysis.structureAnalysis || '';
-        cliffhanger = JSON.stringify(analysis.cliffhanger || []);
+        console.log(aiResult)
+        const generalResponse = aiResult.response;
+        summary = generalResponse.summary|| `Resumen del libro "${libro.title}"`;
+        themes = generalResponse.themes || [];
+        characters = generalResponse.characters || [];
+        plotPoints = generalResponse.plotPoints || [];
+        tone = generalResponse.tone || 'neutral';
+        genre = generalResponse.genre || 'fiction';
+        structureAnalysis = generalResponse.structureAnalysis || '';
+        cliffhanger = Array.isArray(generalResponse.cliffhanger) ? generalResponse.cliffhanger : [];
       } catch (parseError) {
         console.error('Failed to parse AI response. Using fallback:', parseError);
         // Handle parsing failure...

@@ -191,7 +191,7 @@ export const createInteractionTypeController = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
+// Step 1: Create a new book with the provided metadata
 export const createFullBook = async (req,res) => {
     const { 
       interactionTypeId, 
@@ -229,6 +229,7 @@ Return ONLY a JSON object with the exact structure below:
       "important_dialogue": ["list of important dialogue lines or concepts"],
       "objectives_and_outcomes": "string - what this chapter achieves in the story arc",
       "transition_to_next": "string - how this chapter connects to the next one"
+      "mood_and_tone": "string - the emotional tone and atmosphere of the chapter",
     }
   ]
 }
@@ -257,6 +258,7 @@ Return ONLY a JSON object with the exact structure below:
       "important_dialogue": ["'You are the last hope of Eldoria.'"],
       "objectives_and_outcomes": "Kaelen, a young mage, discovers his destiny...",
       "transition_to_next": "Kaelen sets out to the Northern Peaks..."
+      "mood_and_tone": "Mysterious and adventurous"
     }
   ]
 }
@@ -310,15 +312,15 @@ const aiRequest = {
         maxSupply: null,
         status: 'draft'
     }
-   console.log(parsedContent.summary)
     const createdBook = await crearLibro(bookJson);
 
 
-    await generateBookChapters(parsedContent.summary,createdBook.id,totalChapters)
 
     return res.status(200).json({
       message: "Book generated successfully",
-      bookContent: createdBook,
+      bookId: createdBook.id,
+      summary: parsedContent.summary,
+      totalChapters: totalChapters,
       tokenUsed: aiResponse.tokenUsed*totalChapters,
       processingTime: aiResponse.processingTime
     });
@@ -326,7 +328,23 @@ const aiRequest = {
 
   
 
+// Step 2: Generate chapters based on the book outline in base of the response
+export const generateBookChaptersController = async (req,res) => {
+  const { 
+      summary,
+      bookId,
+      totalChapters 
+    } = req.body;
+    
 
+   const responseChapter= await generateBookChapters(summary,bookId,totalChapters)
+   
+   return res.status(200).json(responseChapter);
+
+}
+
+//Step 3: Create cover image for the book  call RequestAIHelp with the bookId and chapterId as null 
+//Step 4: Update the cover image
 
 export const rateAIResponse = async (req, res) => {
   try {

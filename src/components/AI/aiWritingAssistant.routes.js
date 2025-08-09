@@ -9,8 +9,10 @@ import {
   getInteractionTypeController,
   createAIUsageController,
   checkAIServiceConfiguration,
-  createFullBook
+  createFullBook,
+  generateBookChaptersController
 } from "./aiWritingAssistant.controllers.js";
+import { generateBookChapters } from "./aiServiceIntegration.js";
 
 const router = express.Router();
 
@@ -27,6 +29,7 @@ router.post("/rate", rateAIResponse);
 router.post("/apply", applyAISuggestion);
 
 router.post("/fullBook/:userId", createFullBook); 
+router.post("/generateChapters", generateBookChaptersController);
 // Get AI usage statistics
 router.get("/usage/:userId", getAIUsage);
 router.post("/usage/:userId", createAIUsageController);
