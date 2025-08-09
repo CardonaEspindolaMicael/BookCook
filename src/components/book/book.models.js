@@ -81,7 +81,7 @@ export const crearLibro = async (datos) => {
     const { 
       title,
       description,
-      cover, 
+      cover = 'https://www.globaluniversityalliance.org/wp-content/uploads/2017/10/No-Cover-Image-01.png', 
       authorId,
       isFree = true,
       isComplete = false,
