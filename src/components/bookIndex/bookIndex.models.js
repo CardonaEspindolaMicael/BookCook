@@ -475,3 +475,20 @@ export const obtenerLibrosPorTono = async (tono) => {
     throw new Error(`Error al obtener libros por tono: ${error.message}`);
   }
 }; 
+
+export const obtenerCharacterPorLibro = async (bookId) => {
+
+  try {
+    const characters = await prisma.bookIndex.findUnique({
+      where: { bookId },
+      select: {
+        characters: true
+      }
+    });
+
+    return characters.characters || [];
+
+  } catch (error) {
+      throw new Error(`Error getting the characters: ${error.message}`);
+  }
+};

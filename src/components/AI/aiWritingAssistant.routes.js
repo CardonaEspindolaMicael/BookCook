@@ -40,4 +40,5 @@ router.get("/customInteraction",getInteractionTypeController);
 // Check AI service configuration
 router.get("/config", checkAIServiceConfiguration);
 
+
 export default router; 

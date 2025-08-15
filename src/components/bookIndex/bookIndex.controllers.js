@@ -8,7 +8,8 @@ import {
   actualizarAnalisisLibro,
   obtenerLibrosPorTema,
   obtenerLibrosPorGenero,
-  obtenerLibrosPorTono
+  obtenerLibrosPorTono,
+  obtenerCharacterPorLibro
 } from "./bookIndex.models.js";
 import { crearIndiceLibroSchema } from "./dto/bookIndex.dto.js";
 import { actualizarIndiceLibroSchema } from "./dto/bookIndex.update.dto.js";
@@ -142,3 +143,18 @@ export const getLibrosPorTono = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }; 
+
+export const getCharacterPorLibro = async (req, res) => {
+  const { bookId } = req.params;
+
+  console.log(bookId)
+  try {
+    const response = await obtenerCharacterPorLibro(bookId);
+    if (!response) {
+      return res.status(404).json({ message: "No se encontraron personajes para este libro" });
+    }
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

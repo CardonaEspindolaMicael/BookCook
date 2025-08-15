@@ -9,7 +9,8 @@ import {
   putAnalisisLibro,
   getLibrosPorTema,
   getLibrosPorGenero,
-  getLibrosPorTono
+  getLibrosPorTono,
+  getCharacterPorLibro
 } from "./bookIndex.controllers.js";
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.get("/", getIndicesLibro);
 router.get("/libro/:bookId", getIndicePorLibro);
 router.get("/tema/:tema", getLibrosPorTema);
 router.get("/genero/:genero", getLibrosPorGenero);
+router.get("/getCharacters/:bookId", getCharacterPorLibro);
 router.get("/tono/:tono", getLibrosPorTono);
 router.get("/:id", getIndicePorId);
 router.post("/", postIndiceLibro);

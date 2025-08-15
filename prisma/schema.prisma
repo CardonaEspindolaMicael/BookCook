@@ -116,6 +116,7 @@ model Book {
   purchases       Purchase[]
   bookIndex       BookIndex?        // AI indexing
   aiInteractions  AIInteraction[]   // AI help for this book
+  characters      Character[] 
   
   // Reader engagement
   readingHistory  ReadingHistory[]
@@ -128,6 +129,52 @@ model Book {
   @@index([createdAt])
   @@index([viewCount])
   @@map("books")
+}
+
+model Character {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  bookId      String   // Foreign key to Book
+  
+  // Physical description for image generation
+  artStyle          String?           // e.g., "realistic", "anime", "cartoon"
+  physicalDescription String  @db.Text  // Detailed physical appearance
+  age                Int?              // Character's age
+  gender             String?           // Character's gender
+  height             String?           // e.g., "tall", "short", "medium"
+  build              String?           // e.g., "slim", "muscular", "stocky"
+  hairColor          String?           // Hair color
+  hairStyle          String?           // Hair style/length
+  eyeColor           String?           // Eye color
+  skinTone           String?           // Skin tone/complexion
+  facialFeatures     String?  @db.Text // Distinctive facial features
+  clothingStyle      String?  @db.Text // Typical clothing/style
+  distinctiveMarks   String?  @db.Text // Scars, tattoos, birthmarks, etc.
+  
+  // Character details
+  role               String?           // protagonist, antagonist, supporting, etc.
+  personality        String?  @db.Text // Personality traits
+  background         String?  @db.Text // Character backstory
+  occupation         String?           // What they do for work
+  
+  // Image generation fields
+  generatedImageUrl  String?           // URL of AI-generated character image
+  imagePrompt        String?  @db.Text // The prompt used for image generation
+  imageStyle         String?           // Art style preference (realistic, anime, cartoon, etc.)
+  
+  // Metadata
+  isMainCharacter    Boolean  @default(false) // Is this a main character?
+  appearanceOrder    Int?                     // Order of appearance in the book
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Relationships
+  book              Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  
+  @@index([bookId])
+  @@index([isMainCharacter])
+  @@index([appearanceOrder])
+  @@map("characters")
 }
 
 // Chapter Model
