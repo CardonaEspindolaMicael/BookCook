@@ -5,5 +5,6 @@ export const registrarUsuarioSchema = z.object({
   email: z.string().email("Correo no válido"),
   password: z.string().min(6, "La contraseña debe tener mínimo 6 caracteres"),
   image: z.string().optional(),
+  bio: z.string().optional(),
   isPremium: z.boolean().optional().default(false)
 });

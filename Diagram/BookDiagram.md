@@ -295,4 +295,5 @@ classDiagram
   Campaign "1" --> "*" Backer : has_backers
 
   Chapter "1" --> "*" ContentUpdate : updates
+  
 ```

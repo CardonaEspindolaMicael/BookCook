@@ -8,9 +8,10 @@ import {
   deleteUser,
   obtenerUsuariosById,
   obtenerUsuarioPorSuCorreo,
-  obtenerUsuarioConRelaciones,
   asignarRolUsuario,
-  removerRolUsuario
+  removerRolUsuario,
+  obtenerUsuariosPremium,
+  obtenerEstadisticasUsuario
 } from "./user.models.js";
 import bcrypt from "bcrypt";
 import { registrarUsuarioSchema } from "./dto/sala.dto.js";
@@ -150,20 +151,6 @@ export const renovarToken = async (req, res) => {
   return res.status(200).json({ message: "Token renovado con exito!" });
 };
 
-// New controllers for enhanced functionality
-export const getUsuarioConRelaciones = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const response = await obtenerUsuarioConRelaciones(id);
-    if (!response) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-    res.status(200).json(response);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 export const asignarRol = async (req, res) => {
   try {
     const datos = asignarRolSchema.parse(req.body);
@@ -191,6 +178,25 @@ export const removerRol = async (req, res) => {
       return res.status(400).json({ ok: false, errores: error.errors });
     }
     console.error('Error al remover rol:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getUsuariosPremium = async (req, res) => {
+  try {
+    const response = await obtenerUsuariosPremium();
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getEstadisticasUsuario = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const response = await obtenerEstadisticasUsuario(userId);
+    res.status(200).json(response);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
